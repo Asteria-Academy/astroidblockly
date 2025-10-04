@@ -43,14 +43,15 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
     return Scaffold(
       body: SafeArea(
         child: InAppWebView(
-          initialUrlRequest: URLRequest(url: WebUri("http://localhost:8080/index.html")),
+          initialUrlRequest: URLRequest(
+            url: WebUri("http://localhost:8080/index.html"),
+          ),
           initialSettings: InAppWebViewSettings(
             mediaPlaybackRequiresUserGesture: false,
             javaScriptCanOpenWindowsAutomatically: true,
             isInspectable: kDebugMode,
           ),
           onWebViewCreated: (controller) {
-
             controller.addJavaScriptHandler(
               handlerName: 'Print',
               callback: (args) {
@@ -59,7 +60,9 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
             );
           },
           onConsoleMessage: (controller, consoleMessage) {
-            debugPrint("WebView Console: [${consoleMessage.messageLevel}] ${consoleMessage.message}");
+            debugPrint(
+              "WebView Console: [${consoleMessage.messageLevel}] ${consoleMessage.message}",
+            );
           },
         ),
       ),
