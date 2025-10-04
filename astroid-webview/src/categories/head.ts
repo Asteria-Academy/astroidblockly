@@ -1,9 +1,7 @@
 // src/categories/head.ts
-
 import * as Blockly from 'blockly/core';
-import { javascriptGenerator, Order } from 'blockly/javascript';
+import { javascriptGenerator } from 'blockly/javascript';
 import { astroidV2 } from '../robotProfiles';
-import '@blockly/field-colour-hsv-sliders';
 
 // --- Block Definitions ---
 Blockly.defineBlocksWithJsonArray([
@@ -12,9 +10,9 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "Set LED color to %1",
     "args0": [
       {
-        "type": "input_value",
+        "type": "field_colour_hsv_sliders",
         "name": "COLOR",
-        "check": "Colour"
+        "colour": "#ff0000" 
       }
     ],
     "previousStatement": null,
@@ -45,10 +43,10 @@ Blockly.defineBlocksWithJsonArray([
 ]);
 
 // --- Block Generators ---
-javascriptGenerator.forBlock['head_set_led'] = function(block, generator) {
-  const color = generator.valueToCode(block, 'COLOR', Order.ATOMIC) || "'#ffffff'";
+javascriptGenerator.forBlock['head_set_led'] = function(block, _generator) {
+  const color = block.getFieldValue('COLOR') || '#ffffff';
   
-  const hex = color.replace(/['#]/g, '');
+  const hex = color.replace('#', '');
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);
   const b = parseInt(hex.substring(4, 6), 16);
@@ -81,16 +79,6 @@ export const headCategory = {
     {
       kind: 'block',
       type: 'head_set_led',
-      inputs: {
-        COLOR: {
-          shadow: {
-            type: 'field_colour_hsv_sliders',
-            fields: {
-              COLOUR: '#ff0000'
-            }
-          }
-        }
-      }
     },
     {
       kind: 'block',

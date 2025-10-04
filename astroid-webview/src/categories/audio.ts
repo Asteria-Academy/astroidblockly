@@ -23,7 +23,7 @@ Blockly.defineBlocksWithJsonArray([
     ],
     "previousStatement": null,
     "nextStatement": null,
-    "style": "sound_blocks",
+    "style": "audio_blocks",
     "tooltip": "Plays a pre-programmed sound from the robot's speaker."
   },
   {
@@ -31,7 +31,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "start dance mode",
     "previousStatement": null,
     "nextStatement": null,
-    "style": "sound_blocks",
+    "style": "audio_blocks",
     "tooltip": "Makes the robot perform a dance routine."
   }
 ]);
@@ -58,7 +58,7 @@ javascriptGenerator.forBlock['audio_dance'] = function(_block, _generator) {
 export const audioCategory = {
   kind: 'category',
   name: 'Audio',
-  categorystyle: 'sound_category',
+  categorystyle: 'audio_category',
   contents: [
     { kind: 'block', type: 'audio_play_sound' },
     { kind: 'block', type: 'audio_dance' },

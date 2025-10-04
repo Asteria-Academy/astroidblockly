@@ -7,6 +7,8 @@ import { neckCategory } from './categories/neck';
 import { gripperCategory } from './categories/gripper';
 import { controlCategory } from './categories/control';
 import { operatorsCategory } from './categories/operators';
+import { audioCategory } from './categories/audio';
+import { sensorsCategory } from './categories/sensors';
 
 export function getAstroidToolbox(): Blockly.utils.toolbox.ToolboxDefinition {
   return {
@@ -16,9 +18,11 @@ export function getAstroidToolbox(): Blockly.utils.toolbox.ToolboxDefinition {
       neckCategory,
       headCategory,
       gripperCategory,
+      audioCategory,
       { kind: 'sep' },
       controlCategory,
       operatorsCategory,
+      sensorsCategory,
     ],
   };
 }

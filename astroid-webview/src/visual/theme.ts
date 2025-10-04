@@ -40,17 +40,26 @@ const componentStyles: Blockly.Theme.ComponentStyle = {
 
 // --- CATEGORY AND BLOCK STYLES ---
 const categoryColors = {
+  // Event/Trigger
   events: '#f59e0b',
-  motors: '#0D65D9',      // Drive system
-  motion: '#00A1AA',      // For servos/neck
-  looks: '#8057E3',       // For LED/LCD
+  
+  // Robot Actions
+  motors: '#0D65D9',
+  motion: '#00A1AA',
+  looks: '#8057E3',
+  functions: '#D94575',
+  audio: '#CF2292',
+  
+  // Logic & Sensing
   control: '#F46718',
   operators: '#40BF4A',
-  // Ensure text blocks have a defined style referenced by styleMap ('text_blocks').
+  sensors: '#0891B2',
+  
+  // Data
   text: '#0EA5E9',
   variables: '#FF8C1A',
-  functions: '#D94575',   // For gripper/mechanisms
 };
+
 
 const blockStyles: { [key: string]: Blockly.Theme.BlockStyle } = {};
 const categoryStyles: { [key: string]: Blockly.Theme.CategoryStyle } = {};
@@ -70,29 +79,6 @@ blockStyles.events_blocks.hat = 'cap';
 const AstroidTheme = new Blockly.Theme('astroid-theme', blockStyles, categoryStyles, componentStyles);
 AstroidTheme.fontStyle = fontStyle;
 
-// export function getAstroidTheme(isDark: boolean = false): Blockly.Theme {
 export function getAstroidTheme(): Blockly.Theme {
-  // For now, we only have a light theme.
-  // We can easily add a dark theme variant later by creating darkComponentStyles.
   return AstroidTheme;
-}
-
-// Provide standard style keys used by built-in blocks so they map to our palette
-// without overriding any block init logic.
-const cloneStyle = (from: string, to: string) => {
-  if (blockStyles[from]) {
-    blockStyles[to] = { ...blockStyles[from] };
-  }
-};
-
-cloneStyle('operators_blocks', 'math_blocks');
-cloneStyle('operators_blocks', 'logic_blocks');
-cloneStyle('operators_blocks', 'list_blocks');
-cloneStyle('control_blocks', 'loop_blocks');
-cloneStyle('looks_blocks', 'colour_blocks');
-cloneStyle('functions_blocks', 'procedure_blocks');
-// variables/text styles already exist as variables_blocks/text_blocks
-
-export function applyAstroidThemeStyles() {
-  // No-op. Built-in blocks will use the style keys above from the theme.
 }

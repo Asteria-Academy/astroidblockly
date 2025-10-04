@@ -21,7 +21,7 @@ Blockly.defineBlocksWithJsonArray([
     ],
     "previousStatement": null,
     "nextStatement": null,
-    "style": "functions_category",
+    "style": "functions_blocks",
     "tooltip": "Opens or closes the robot's gripper."
   }
 ]);
