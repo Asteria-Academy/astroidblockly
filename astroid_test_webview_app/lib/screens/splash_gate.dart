@@ -2,8 +2,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../router/app_router.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'astroid_webview_screen.dart';
 
 /// Server lokal utk memuat Blockly dari /assets
 final InAppLocalhostServer localhostServer = InAppLocalhostServer(
@@ -25,19 +25,17 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _progressCtl =
-        AnimationController(vsync: this, duration: const Duration(seconds: 2))
+        AnimationController(vsync: this, duration: const Duration(seconds: 60))
           ..addStatusListener((s) {
             if (s == AnimationStatus.completed) {
               if (!mounted) return;
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const AstroidWebViewScreen()),
-              );
+              Navigator.pushReplacementNamed(context, AppRoutes.webview);
             }
           });
 
     _meteorCtl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 650),
+      duration: const Duration(milliseconds: 10),
     )..repeat(reverse: true);
 
     _boot();
@@ -91,7 +89,9 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
           // Skala proporsional
           final titleW = math.min(w * 0.56, 720.0);
           final barW = math.min(w * 0.42, 520.0);
-          final barH = math.min(h * 0.10, 56.0);
+          final barH = math.min(h * 0.11, 68.0);
+          final meteorSize = barH * 1.6;
+          final barVerticalInset = (meteorSize - barH) / 2;
 
           return Stack(
             children: [
@@ -102,27 +102,31 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
 
               // 2) Title “ASTROID BLOCKLY”
               Align(
-                alignment: const Alignment(0, -0.12),
+                alignment: const Alignment(0, -0.2),
                 child: Image.asset('assets/brand/logo.png', width: titleW),
               ),
 
               // 3) Progress bar (track + fill + meteor)
               Align(
-                alignment: const Alignment(0, 0.25),
+                alignment: const Alignment(0, 0.4),
                 child: SizedBox(
                   width: barW,
-                  height: barH,
+                  height: barH + barVerticalInset * 2,
                   child: Stack(
-                    alignment: Alignment.centerLeft,
+                    clipBehavior: Clip.none,
                     children: [
                       // Track
                       Positioned.fill(
-                        child: Image.asset(
-                          'assets/splash/bar_track.png',
-                          fit: BoxFit.fill,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            vertical: barVerticalInset,
+                          ),
+                          child: Image.asset(
+                            'assets/splash/bar_track.png',
+                            fit: BoxFit.fill,
+                          ),
                         ),
                       ),
-                      // Fill (ini yang menggantikan ClipRect+Align)
                       AnimatedBuilder(
                         animation: _progressCtl,
                         builder: (context, _) {
@@ -130,12 +134,32 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
                             _progressCtl.value,
                           );
                           return Positioned.fill(
-                            child: FractionallySizedBox(
-                              widthFactor: p.clamp(0.0, 1.0), // 0..1
-                              alignment: Alignment.centerLeft, // isi dari kiri
-                              child: Image.asset(
-                                'assets/splash/bar_fill.png',
-                                fit: BoxFit.fill,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                vertical: barVerticalInset,
+                              ),
+                              child: LayoutBuilder(
+                                builder: (context, barBox) {
+                                  final clamped = p.clamp(0.0, 1.0).toDouble();
+                                  if (clamped <= 0) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  final clipWidth = barBox.maxWidth * clamped;
+                                  return Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: ClipRect(
+                                      clipper: _ProgressClipper(clipWidth),
+                                      child: SizedBox(
+                                        width: barBox.maxWidth,
+                                        height: barBox.maxHeight,
+                                        child: Image.asset(
+                                          'assets/splash/bar_fill.png',
+                                          fit: BoxFit.fill,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                           );
@@ -148,18 +172,19 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
                           final p = Curves.easeInOut.transform(
                             _progressCtl.value,
                           );
-                          final bob =
-                              (_meteorCtl.value - 0.5) *
-                              (barH * 0.18); // goyang dikit
-                          final x =
-                              (barW - barH) *
-                              p; // padding akhir = barH biar nggak keluar
-                          return Transform.translate(
-                            offset: Offset(x, -barH * 0.10 + bob),
+                          final bob = (_meteorCtl.value - 0.5) * (barH * 0.18);
+                          final clamped = p.clamp(0.0, 1.0).toDouble();
+                          final x = (barW - (meteorSize / 2)) * clamped;
+                          return Positioned(
+                            top: bob,
+                            left: x,
                             child: SizedBox(
-                              width: barH,
-                              height: barH,
-                              child: Image.asset('assets/splash/meteor.png'),
+                              width: meteorSize,
+                              height: meteorSize,
+                              child: Image.asset(
+                                'assets/splash/meteor.png',
+                                fit: BoxFit.fitWidth,
+                              ),
                             ),
                           );
                         },
@@ -168,9 +193,12 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-
               // 4) Frame HUD di paling atas
-              Positioned.fill(
+              Positioned(
+                top: -15,
+                left: -15,
+                width: c.maxWidth * 1.05, // Set manually for width
+                height: c.maxHeight * 1.05, // Set manually for height
                 child: IgnorePointer(
                   child: Image.asset(
                     'assets/splash/border.png',
@@ -181,14 +209,14 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
 
               // 5) Branding
               Positioned(
-                bottom: 10,
+                bottom: 5,
                 left: 0,
                 right: 0,
                 child: Text(
                   'Powered by Astroid Engine',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Color.fromARGB(192, 192, 192, 192).withOpacity(0.75),
+                    color: Color.fromARGB(192, 192, 192, 192),
                     fontSize: 12,
                   ),
                 ),
@@ -199,4 +227,19 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
       ),
     );
   }
+}
+
+class _ProgressClipper extends CustomClipper<Rect> {
+  _ProgressClipper(this.width);
+
+  final double width;
+
+  @override
+  Rect getClip(Size size) {
+    final clampedWidth = width.clamp(0.0, size.width).toDouble();
+    return Rect.fromLTWH(0, 0, clampedWidth, size.height);
+  }
+
+  @override
+  bool shouldReclip(_ProgressClipper oldClipper) => width != oldClipper.width;
 }
