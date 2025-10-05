@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 // === Import halamanmu ===
 import '../screens/splash_gate.dart';
-// import '../screens/home_page.dart';
+import '../screens/home_screen.dart';
 // import '../screens/settings_page.dart';
 import '../screens/astroid_webview_screen.dart';
 
@@ -21,6 +21,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case AppRoutes.splash:
       return _page(const SplashGate());
 
+    case AppRoutes.home:
+      return _page(const HomeScreen());
     case AppRoutes.webview:
       return _page(AstroidWebViewScreen());
 
@@ -34,7 +36,5 @@ MaterialPageRoute _page(Widget child) =>
     MaterialPageRoute(builder: (_) => child);
 
 /// Route not found
-Route<dynamic> _notFound(String? name) => MaterialPageRoute(
-  builder: (_) =>
-      Scaffold(body: Center(child: Text('Route tidak ditemukan: $name'))),
-);
+Route<dynamic> _notFound(String? name) =>
+    MaterialPageRoute(builder: (_) => const HomeScreen());

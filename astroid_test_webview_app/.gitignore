@@ -11,7 +11,9 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
-assets
+assets/assets/
+assets/index.html
+assets/vite.svg
 
 # IntelliJ related
 *.iml

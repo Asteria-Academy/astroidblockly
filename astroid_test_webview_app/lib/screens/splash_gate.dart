@@ -25,17 +25,17 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _progressCtl =
-        AnimationController(vsync: this, duration: const Duration(seconds: 60))
+        AnimationController(vsync: this, duration: const Duration(seconds: 10))
           ..addStatusListener((s) {
             if (s == AnimationStatus.completed) {
               if (!mounted) return;
-              Navigator.pushReplacementNamed(context, AppRoutes.webview);
+              Navigator.pushReplacementNamed(context, AppRoutes.home);
             }
           });
 
     _meteorCtl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 10),
+      duration: const Duration(milliseconds: 650),
     )..repeat(reverse: true);
 
     _boot();
