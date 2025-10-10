@@ -1,11 +1,17 @@
 // lib/router/app_router.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 
 // === Import halamanmu ===
 import '../screens/splash_gate.dart';
 import '../screens/home_screen.dart';
 // import '../screens/settings_page.dart';
 import '../screens/astroid_webview_screen.dart';
+import '../screens/mission_control_screen.dart';
+import '../screens/connect_screen.dart';
+import '../screens/connecting_screen.dart';
+import '../models/project.dart';
 
 /// Kumpulan nama route supaya konsisten & mudah diubah
 class AppRoutes {
@@ -13,6 +19,9 @@ class AppRoutes {
   static const home = '/home';
   static const settings = '/settings';
   static const webview = '/webview';
+  static const missionControl = '/mission-control';
+  static const connect = '/connect';
+  static const connecting = '/connecting';
 }
 
 /// Router utama: hubungkan name → page
@@ -24,7 +33,21 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case AppRoutes.home:
       return _page(const HomeScreen());
     case AppRoutes.webview:
-      return _page(AstroidWebViewScreen());
+      final args = settings.arguments as Map<String, String>? ?? {'action': 'new_project'};
+      return _page(AstroidWebViewScreen(args: args));
+
+    case AppRoutes.missionControl:
+      final args = settings.arguments as Map<String, dynamic>;
+      final projects = args['projects'] as List<Project>;
+      final controller = args['controller'] as InAppWebViewController?;
+      return _page(MissionControlScreen(projects: projects, controller: controller));
+
+    case AppRoutes.connect:
+      return _page(const ConnectScreen());
+
+    case AppRoutes.connecting:
+      final device = settings.arguments as fbp.BluetoothDevice;
+      return _page(ConnectingScreen(device: device));
 
     default:
       return _notFound(settings.name);

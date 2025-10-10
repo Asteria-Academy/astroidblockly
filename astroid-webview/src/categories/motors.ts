@@ -7,63 +7,41 @@ import { astroidV2 } from '../robotProfiles';
 // --- Block Definitions ---
 Blockly.defineBlocksWithJsonArray([
   {
-    "type": "motor_move_directional",
-    "message0": "Move %1 at speed %2",
+    "type": "motor_move_timed",
+    "message0": "Move %1 at %2 %% speed for %3 seconds",
+    "args0": [
+      { "type": "field_dropdown", "name": "DIRECTION", "options": [["Forward", "forward"], ["Backward", "backward"]] },
+      {
+        "type": "field_slider", "name": "SPEED", "value": 100, "min": 0, "max": 100
+      },
+      { "type": "input_value", "name": "DURATION", "check": "Number" }
+    ],
+    "previousStatement": null, "nextStatement": null, "style": "motors_blocks", "inputsInline": true,
+  },
+  {
+    "type": "motor_turn_timed",
+    "message0": "Turn %1 at %2 %% speed for %3 seconds",
+    "args0": [
+      { "type": "field_dropdown", "name": "DIRECTION", "options": [["Left", "left"], ["Right", "right"]] },
+      {
+        "type": "field_slider", "name": "SPEED", "value": 80, "min": 0, "max": 100
+      },
+      { "type": "input_value", "name": "DURATION", "check": "Number" }
+    ],
+    "previousStatement": null, "nextStatement": null, "style": "motors_blocks", "inputsInline": true,
+  },
+  {
+    "type": "motor_drive_direct",
+    "message0": "Set wheel speeds Left: %1 %% Right: %2 %%",
     "args0": [
       {
-        "type": "field_dropdown",
-        "name": "DIRECTION",
-        "options": [
-          ["Forward", "FORWARD"],
-          ["Backward", "BACKWARD"]
-        ]
+        "type": "field_slider", "name": "LEFT_SPEED", "value": 80, "min": -100, "max": 100
       },
       {
-        "type": "input_value",
-        "name": "SPEED",
-        "check": "Number"
+        "type": "field_slider", "name": "RIGHT_SPEED", "value": 80, "min": -100, "max": 100
       }
     ],
-    "previousStatement": null,
-    "nextStatement": null,
-    "style": "motors_blocks",
-    "tooltip": "Moves the robot forward or backward at a specified speed."
-  },
-  {
-    "type": "motor_turn_directional",
-    "message0": "Turn %1",
-    "args0": [
-      {
-        "type": "field_dropdown",
-        "name": "DIRECTION",
-        "options": [
-          ["Left", "LEFT"],
-          ["Right", "RIGHT"]
-        ]
-      }
-    ],
-    "previousStatement": null,
-    "nextStatement": null,
-    "style": "motors_blocks",
-    "tooltip": "Turns the robot left or right on the spot."
-  },
-  {
-    "type": "motor_spin_directional",
-    "message0": "Spin %1",
-    "args0": [
-      {
-        "type": "field_dropdown",
-        "name": "DIRECTION",
-        "options": [
-          ["Left", "LEFT"],
-          ["Right", "RIGHT"]
-        ]
-      }
-    ],
-    "previousStatement": null,
-    "nextStatement": null,
-    "style": "motors_blocks",
-    "tooltip": "Spins the robot continuously left or right."
+    "previousStatement": null, "nextStatement": null, "style": "motors_blocks", "inputsInline": true,
   },
   {
     "type": "motor_stop",
@@ -71,92 +49,84 @@ Blockly.defineBlocksWithJsonArray([
     "previousStatement": null,
     "nextStatement": null,
     "style": "motors_blocks",
-    "tooltip": "Stops all robot movement."
+    "tooltip": "Halts all robot movement."
   }
 ]);
 
 // --- Block Generators ---
-javascriptGenerator.forBlock['motor_move_directional'] = function(block, generator) {
+javascriptGenerator.forBlock['motor_move_timed'] = function(block, generator) {
   const direction = block.getFieldValue('DIRECTION');
-  const speed = generator.valueToCode(block, 'SPEED', Order.ATOMIC) || '100';
+  const speed = block.getFieldValue('SPEED');
+  const userDurationSeconds = parseFloat(generator.valueToCode(block, 'DURATION', Order.ATOMIC) || '1');
+  const safeDurationSeconds = Math.max(0.1, userDurationSeconds);
   
-  const command = direction === 'FORWARD' 
-    ? astroidV2.commands.moveForward 
-    : astroidV2.commands.moveBackward;
-
   const commandObj = {
-    command: command,
+    command: astroidV2.commands.moveTimed,
     params: {
-      speed: parseInt(speed, 10)
+      direction: direction,
+      speed: parseInt(speed, 10),
+      duration_ms: safeDurationSeconds * 1000
     }
   };
   return JSON.stringify(commandObj) + ';';
 };
 
-javascriptGenerator.forBlock['motor_turn_directional'] = function(block, _generator) {
+javascriptGenerator.forBlock['motor_turn_timed'] = function(block, generator) {
   const direction = block.getFieldValue('DIRECTION');
-  
-  const command = direction === 'LEFT'
-    ? astroidV2.commands.turnLeft
-    : astroidV2.commands.turnRight;
-    
+  const speed = block.getFieldValue('SPEED');
+  const userDurationSeconds = parseFloat(generator.valueToCode(block, 'DURATION', Order.ATOMIC) || '1');
+  const safeDurationSeconds = Math.max(0.1, userDurationSeconds);
+
   const commandObj = {
-    command: command,
-    params: {}
+    command: astroidV2.commands.turnTimed,
+    params: {
+      direction: direction,
+      speed: parseInt(speed, 10),
+      duration_ms: safeDurationSeconds * 1000
+    }
   };
   return JSON.stringify(commandObj) + ';';
 };
 
-javascriptGenerator.forBlock['motor_spin_directional'] = function(block, _generator) {
-  const direction = block.getFieldValue('DIRECTION');
-  
-  const command = direction === 'LEFT'
-    ? astroidV2.commands.spinLeft
-    : astroidV2.commands.spinRight;
+javascriptGenerator.forBlock['motor_drive_direct'] = function(block, _generator) {
+  const leftSpeed = block.getFieldValue('LEFT_SPEED');
+  const rightSpeed = block.getFieldValue('RIGHT_SPEED');
 
   const commandObj = {
-    command: command,
-    params: {}
+    command: astroidV2.commands.driveDirect,
+    params: { left_speed: leftSpeed, right_speed: rightSpeed }
   };
   return JSON.stringify(commandObj) + ';';
 };
 
 javascriptGenerator.forBlock['motor_stop'] = function(_block, _generator) {
   const commandObj = {
-    command: astroidV2.commands.stop,
-    params: {}
+    command: astroidV2.commands.driveDirect,
+    params: { left_speed: 0, right_speed: 0 }
   };
   return JSON.stringify(commandObj) + ';';
 };
 
+// --- Toolbox Definition ---
 export const motorsCategory = {
   kind: 'category',
-  name: 'Drive',
+  name: 'Motion',
   categorystyle: 'motors_category',
   contents: [
-    {
-      kind: 'block',
-      type: 'motor_move_directional',
-      inputs: {
-        SPEED: {
-          shadow: {
-            type: 'math_number',
-            fields: { NUM: 100 }
-          }
-        }
-      }
+    { 
+      kind: 'block', 
+      type: 'motor_move_timed',
+      inputs: { DURATION: { shadow: { type: 'math_number', fields: { NUM: 1 } } } } 
     },
-    {
-      kind: 'block',
-      type: 'motor_turn_directional'
+    { 
+      kind: 'block', 
+      type: 'motor_turn_timed',
+      inputs: { DURATION: { shadow: { type: 'math_number', fields: { NUM: 1 } } } } 
     },
-    {
-      kind: 'block',
-      type: 'motor_spin_directional'
-    },
-    {
-      kind: 'block',
-      type: 'motor_stop'
+    { kind: 'block', type: 'motor_stop' },
+    { 
+      kind: 'block', 
+      type: 'motor_drive_direct' 
     },
   ],
 };

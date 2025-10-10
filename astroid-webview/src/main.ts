@@ -1,51 +1,195 @@
 // src/main.ts
 
 import * as Blockly from 'blockly/core';
-
 import { javascriptGenerator } from 'blockly/javascript';
 import { ContinuousToolbox, ContinuousFlyout, registerContinuousToolbox } from '@blockly/continuous-toolbox';
 
-// --- Our Project's Core Files ---
 import { getAstroidToolbox } from './toolbox';
 import { getAstroidTheme } from './visual/theme';
 import { runCommands } from './command_runner';
 import { initializeAstroidEditor } from './core';
 
+declare global {
+  interface Window {
+    astroidAppChannel: (message: string) => void;
+    
+    getProjectList: () => string;
+    deleteProject: (projectId: string) => void;
+    renameProject: (projectId: string, newName: string) => void;
+  }
+}
+
+interface Project {
+  id: string;
+  name: string;
+  last_modified: number;
+  workspace_json: any;
+}
+
+const INITIAL_WORKSPACE_JSON = {
+  "blocks": { "languageVersion": 0, "blocks": [
+    { "type": "program_start", "id": "start_block", "x": 200, "y": 100, "deletable": false, "movable": false,
+      "next": { "block": { "type": "motor_stop" } }
+    }
+  ]}
+};
+
 initializeAstroidEditor();
 
-// --- Get DOM Elements ---
 const blocklyDiv = document.getElementById('blockly-div');
-const runButton = document.getElementById('run-button');
+const playButton = document.getElementById('play-button');
+const btStatusButton = document.getElementById('bt-status-button');
 
-// --- Main Application State ---
 let primaryWorkspace: Blockly.WorkspaceSvg;
+let currentProjectId: string | null = null;
+
+function getProjectsData() {
+  const data = localStorage.getItem('astroid_projects');
+  if (!data) return { last_opened_id: null, projects: [] };
+  try {
+    return JSON.parse(data);
+  } catch(e) {
+    return { last_opened_id: null, projects: [] };
+  }
+}
+
+function saveProjectsData(data: any) {
+  localStorage.setItem('astroid_projects', JSON.stringify(data));
+}
+
+(window as any).getProjectList = function() {
+  const data = getProjectsData();
+  const projectList = data.projects.map((p: Project) => ({
+    id: p.id,
+    name: p.name,
+    last_modified: p.last_modified
+  }));
+  return JSON.stringify(projectList);
+};
+
+(window as any).deleteProject = function(projectId: string) {
+  let data = getProjectsData();
+  data.projects = data.projects.filter((p: Project) => p.id !== projectId);
+  if (data.last_opened_id === projectId) {
+    data.last_opened_id = null;
+  }
+  saveProjectsData(data);
+};
+
+(window as any).renameProject = function(projectId: string, newName: string) {
+  if (!newName || newName.trim().length === 0) {
+    console.error("New project name cannot be empty.");
+    return;
+  }
+
+  let data = getProjectsData();
+  const projectIndex = data.projects.findIndex((p: Project) => p.id === projectId);
+
+  if (projectIndex !== -1) {
+    data.projects[projectIndex].name = newName.trim();
+    data.projects[projectIndex].last_modified = Date.now();
+    saveProjectsData(data);
+    console.log(`Project ${projectId} renamed to ${newName}`);
+  } else {
+    console.error(`Could not find project with ID ${projectId} to rename.`);
+  }
+};
 
 function initializeWorkspace() {
-  if (!blocklyDiv || !runButton) {
+  if (!blocklyDiv || !playButton || !btStatusButton) {
     throw new Error('Required DOM elements not found!');
   }
 
   registerContinuousToolbox();
 
   const workspaceConfig: Blockly.BlocklyOptions = {
-    // theme: getAstroidTheme(false),
     theme: getAstroidTheme(),
     toolbox: getAstroidToolbox(),
     renderer: "zelos",
     trashcan: true,
-    zoom: { controls: true, wheel: true, startScale: 0.8 },
-    grid: { spacing: 20, length: 3, colour: '#ccc', snap: true },
+    zoom: { controls: true, wheel: true, startScale: 0.65, maxScale: 1.25, minScale: 0.6, scaleSpeed: 1.05 },
+    grid: { spacing: 20, length: 3, colour: '#444', snap: true },
+    move: { scrollbars: true, drag: true, wheel: true },
     plugins: {
       toolbox: ContinuousToolbox,
       flyoutsVerticalToolbox: ContinuousFlyout,
     },
   };
-
   primaryWorkspace = Blockly.inject(blocklyDiv, workspaceConfig);
 
-  runButton.addEventListener('click', handleRunCode);
+  const urlParams = new URLSearchParams(window.location.search);
+  const action = urlParams.get('action');
+  const projectId = urlParams.get('id');
 
-  console.log("RoboBlox Workspace Initialized!");
+  let data = getProjectsData();
+
+  if (action === 'load_project' && projectId) {
+    const projectToLoad = data.projects.find((p: Project) => p.id === projectId);
+    if (projectToLoad) {
+      console.log(`Loading project: ${projectToLoad.name}`);
+      Blockly.serialization.workspaces.load(projectToLoad.workspace_json, primaryWorkspace);
+      currentProjectId = projectId;
+      data.last_opened_id = projectId;
+    } else {
+      console.error(`Project with ID ${projectId} not found. Starting new.`);
+      createNewProject(data);
+    }
+  } else if (action === 'load_last') {
+    const lastProject = data.projects.find((p: Project) => p.id === data.last_opened_id);
+    if (lastProject) {
+      console.log(`Loading last project: ${lastProject.name}`);
+      Blockly.serialization.workspaces.load(lastProject.workspace_json, primaryWorkspace);
+      currentProjectId = lastProject.id;
+    } else {
+      console.log("No last project found, starting new.");
+      createNewProject(data);
+    }
+  } else {
+    console.log("Creating a new project.");
+    createNewProject(data);
+  }
+
+  saveProjectsData(data);
+
+  primaryWorkspace.addChangeListener((event: Blockly.Events.Abstract) => {
+    if (event.isUiEvent || primaryWorkspace.isDragging() || !currentProjectId) return;
+    
+    const workspaceJson = Blockly.serialization.workspaces.save(primaryWorkspace);
+    let currentData = getProjectsData();
+    const projectIndex = currentData.projects.findIndex((p: Project) => p.id === currentProjectId);
+
+    if (projectIndex !== -1) {
+      currentData.projects[projectIndex].workspace_json = workspaceJson;
+      currentData.projects[projectIndex].last_modified = Date.now();
+      currentData.last_opened_id = currentProjectId;
+      saveProjectsData(currentData);
+      console.log("Project auto-saved.");
+    }
+  });
+
+  playButton.addEventListener('click', handleRunCode);
+
+  btStatusButton.addEventListener('click', () => {
+    if (window.astroidAppChannel) {
+      window.astroidAppChannel('{"event":"show_bt_status"}');
+    } else {
+      console.log("Cannot show BT status, 'astroidAppChannel' not found.");
+    }
+  });
+}
+
+function createNewProject(data: any) {
+    const newId = `proj-${Date.now()}`;
+    const newProject = {
+        id: newId,
+        name: `New Adventure ${data.projects.length + 1}`,
+        last_modified: Date.now(),
+        workspace_json: INITIAL_WORKSPACE_JSON
+    };
+    data.projects.push(newProject);
+    currentProjectId = newId;
+    data.last_opened_id = newId;
+    Blockly.serialization.workspaces.load(INITIAL_WORKSPACE_JSON, primaryWorkspace);
 }
 
 function handleRunCode() {
@@ -53,9 +197,17 @@ function handleRunCode() {
     console.error("Workspace is not initialized.");
     return;
   }
+  const topBlocks = primaryWorkspace.getTopBlocks(true);
+  let generatedCode = '';
+  const startBlock = topBlocks.find(block => block.type === 'program_start');
 
-  const generatedCode = javascriptGenerator.workspaceToCode(primaryWorkspace);
-
+  if (startBlock) {
+    generatedCode = javascriptGenerator.blockToCode(startBlock) as string;
+  } else {
+    console.warn("No 'program_start' block found. Generating code from all blocks.");
+    generatedCode = javascriptGenerator.workspaceToCode(primaryWorkspace);
+  }
+  
   runCommands(generatedCode);
 }
 

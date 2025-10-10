@@ -28,6 +28,12 @@
 		<string>LaunchScreen</string>
 		<key>UIMainStoryboardFile</key>
 		<string>Main</string>
+		<key>NSBluetoothAlwaysUsageDescription</key>
+		<string>Astroid needs Bluetooth to connect to and control your robot.</string>
+		<key>NSBluetoothPeripheralUsageDescription</key>
+		<string>Astroid needs Bluetooth to find and connect to your robot.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>This app needs access to location to find nearby Bluetooth devices.</string>
 		<key>UISupportedInterfaceOrientations</key>
 		<array>
 			<string>UIInterfaceOrientationPortrait</string>

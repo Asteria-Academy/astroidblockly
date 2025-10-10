@@ -1,85 +1,171 @@
 // lib/screens/home_screen.dart
+import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import '../models/project.dart';
 import '../router/app_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget  {
   const HomeScreen({super.key});
+
+   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  InAppWebViewController? _hiddenWebViewController;
+
+  List<Project> _projects = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> _fetchProjectList() async {
+    if (_hiddenWebViewController == null) return;
+
+    try {
+      final result = await _hiddenWebViewController!.callAsyncJavaScript(
+        functionBody: "return window.getProjectList();",
+      );
+
+      if (result?.value != null) {
+        final List<dynamic> projectListJson = jsonDecode(result!.value);
+        final projects = projectListJson
+            .map((json) => Project.fromJson(json))
+            .toList();
+
+        projects.sort((a, b) => b.lastModified.compareTo(a.lastModified));
+        if (mounted) {
+          setState(() {
+            _projects = projects;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching project list: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1433),
-      body: LayoutBuilder(
-        builder: (context, c) {
-          final w = c.maxWidth;
-          final h = c.maxHeight;
-
-          // Skala responsif (selaras dengan splash)
-          final frameInsetScale = 1.05; // utk border HUD
-          final topNavW = math.min(w * 0.5, 520.0);
-          final topNavH = math.min(h * 0.15, 72.0);
-
-          final panelW = math.min(w * 0.78, 960.0);
-          final panelH = math.min(h * 0.56, 380.0);
-
-          final subtitleFont = math.min(w * 0.03, 20.0);
-
-          final ctaW = math.min(w * 0.22, 320.0);
-          final ctaH = math.min(h * 0.10, 64.0);
-
-          return Stack(
-            children: [
-              // 1) Galaxy background
-              Positioned.fill(
-                child: Image.asset('assets/splash/bg.png', fit: BoxFit.cover),
-              ),
-
-              // 2) Top segmented nav
-              Align(
-                alignment: const Alignment(0, -0.7),
-                child: _TopSegmentedNav(
-                  width: topNavW,
-                  height: topNavH,
-                  onTapHome: () {},
-                  onTapWorkspace: () {
-                    Navigator.pushReplacementNamed(context, AppRoutes.webview);
-                  },
-                  onTapConnect: () {
-                    // TODO: navigate ke connect
-                  },
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Positioned(
+              left: -1,
+              top: -1,
+              width: 1,
+              height: 1,
+              child: InAppWebView(
+                initialUrlRequest: URLRequest(
+                  url: WebUri("http://localhost:8080/web_build/index.html"),
                 ),
+                onWebViewCreated: (controller) {
+                  _hiddenWebViewController = controller;
+                },
+                onLoadStop: (controller, url) {
+                  _fetchProjectList();
+                },
               ),
+            ),
+              
+            LayoutBuilder(
+              builder: (context, c) {
+                final w = c.maxWidth;
+                final h = c.maxHeight;
 
-              // 3) Panel tengah (galaxy card)
-              Align(
-                alignment: const Alignment(0, 0.4),
-                child: _GalaxyPanel(
-                  width: panelW,
-                  height: panelH,
-                  subtitleFont: subtitleFont,
-                  ctaWidth: ctaW,
-                  ctaHeight: ctaH,
-                ),
-              ),
+                // Skala responsif (selaras dengan splash)
+                final frameInsetScale = 1.05; // utk border HUD
+                final topNavW = math.min(w * 0.5, 520.0);
+                final topNavH = math.min(h * 0.15, 72.0);
 
-              // 4) Frame HUD overlay paling atas (seperti di splash)
-              Positioned(
-                top: -15,
-                left: -15,
-                width: c.maxWidth * frameInsetScale,
-                height: c.maxHeight * frameInsetScale,
-                child: IgnorePointer(
-                  child: Image.asset(
-                    'assets/splash/border.png',
-                    fit: BoxFit.fill,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+                final panelW = math.min(w * 0.78, 960.0);
+                final panelH = math.min(h * 0.56, 380.0);
+
+                final subtitleFont = math.min(w * 0.03, 20.0);
+
+                final ctaW = math.min(w * 0.22, 320.0);
+                final ctaH = math.min(h * 0.10, 64.0);
+
+                return Stack(
+                  children: [
+                    // 1) Galaxy background
+                    Positioned.fill(
+                      child: Image.asset('assets/splash/bg.png', fit: BoxFit.cover),
+                    ),
+
+                    // 2) Top segmented nav
+                    Align(
+                      alignment: const Alignment(0, -0.7),
+                      child: _TopSegmentedNav(
+                        width: topNavW,
+                        height: topNavH,
+                        onTapHome: () {},
+                        onTapWorkspace: () {
+                          Navigator.pushReplacementNamed(context, AppRoutes.webview);
+                        },
+                        onTapConnect: () {
+                          Navigator.pushNamed(context, AppRoutes.connect);
+                        },
+                      ),
+                    ),
+
+                    // 3) Panel tengah (galaxy card)
+                    Align(
+                      alignment: const Alignment(0, 0.4),
+                      child: _GalaxyPanel(
+                        width: panelW,
+                        height: panelH,
+                        subtitleFont: subtitleFont,
+                        ctaWidth: ctaW,
+                        ctaHeight: ctaH,
+                        isLoading: _isLoading,
+                        hasProjects: _projects.isNotEmpty,
+                        onMissionControlTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.missionControl,
+                            arguments: {
+                              'projects': _projects,
+                              'controller': _hiddenWebViewController,
+                            },
+                          );
+                        },
+                      ),
+                    ),
+
+                    // 4) Frame HUD overlay paling atas (seperti di splash)
+                    Positioned(
+                      top: -15,
+                      left: -15,
+                      width: c.maxWidth * frameInsetScale,
+                      height: c.maxHeight * frameInsetScale,
+                      child: IgnorePointer(
+                        child: Image.asset(
+                          'assets/splash/border.png',
+                          fit: BoxFit.fill,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -104,7 +190,7 @@ class _TopSegmentedNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(height * 0.45);
     final segmentHeight = height - (height * 0.28);
-    final dividerColor = const Color(0xFFA4F2FF).withOpacity(0.4);
+    final dividerColor = const Color.fromARGB(102, 164, 242, 255);
 
     return Container(
       width: width,
@@ -121,12 +207,12 @@ class _TopSegmentedNav extends StatelessWidget {
           end: Alignment.bottomCenter,
         ),
         border: Border.all(
-          color: const Color(0xFF73F0FF).withOpacity(0.8),
+          color: const Color.fromARGB(204, 115, 240, 255),
           width: 2.4,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6AE8FF).withOpacity(0.28),
+            color: const Color.fromARGB(71, 106, 232, 255),
             blurRadius: 24,
             spreadRadius: 1,
           ),
@@ -227,7 +313,7 @@ class _NavPill extends StatelessWidget {
           );
     final borderColor = active
         ? const Color(0xFFA7F8FF)
-        : const Color(0xFF8BD8FF).withOpacity(0.65);
+        : const Color.fromARGB(166, 139, 216, 255);
 
     final textStyle = GoogleFonts.titanOne(
       fontSize: height * 0.25,
@@ -248,7 +334,7 @@ class _NavPill extends StatelessWidget {
           boxShadow: [
             if (active)
               BoxShadow(
-                color: const Color(0xFF80F1FF).withOpacity(0.45),
+                color: const Color.fromARGB(115, 128, 241, 255),
                 blurRadius: 18,
                 offset: const Offset(0, 6),
               ),
@@ -277,6 +363,9 @@ class _GalaxyPanel extends StatelessWidget {
     required this.subtitleFont,
     required this.ctaWidth,
     required this.ctaHeight,
+    required this.isLoading,
+    required this.hasProjects,
+    required this.onMissionControlTap,
   });
 
   final double width;
@@ -284,6 +373,9 @@ class _GalaxyPanel extends StatelessWidget {
   final double subtitleFont;
   final double ctaWidth;
   final double ctaHeight;
+  final bool isLoading;
+  final bool hasProjects;
+  final VoidCallback onMissionControlTap;
 
   @override
   Widget build(BuildContext context) {
@@ -295,8 +387,6 @@ class _GalaxyPanel extends StatelessWidget {
     final logoSlotHeight = height * 0.18;
     final buttonSpacing = ctaWidth * 0.08;
     final runSpacing = ctaHeight * 0.35;
-    final goToWorkspace = () =>
-        Navigator.pushReplacementNamed(context, AppRoutes.webview);
 
     return Container(
       width: width,
@@ -314,7 +404,7 @@ class _GalaxyPanel extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFB29CFF).withOpacity(0.35),
+            color: const Color.fromARGB(89, 178, 156, 255),
             blurRadius: 28,
             spreadRadius: 4,
           ),
@@ -336,7 +426,6 @@ class _GalaxyPanel extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.max,
           children: [
-            // Let the logo grow visually while keeping the layout height stable.
             SizedBox(
               height: logoSlotHeight,
               child: Align(
@@ -365,7 +454,7 @@ class _GalaxyPanel extends StatelessWidget {
                 letterSpacing: 1.8,
                 shadows: [
                   Shadow(
-                    color: const Color(0xFF6EE7FF).withOpacity(0.4),
+                    color: const Color.fromARGB(102, 110, 231, 255),
                     blurRadius: 18,
                   ),
                 ],
@@ -388,7 +477,11 @@ class _GalaxyPanel extends StatelessWidget {
                   ),
                   borderColor: const Color(0xFFFDF5FF),
                   shadowColor: const Color(0xFFE3CFFF),
-                  onTap: goToWorkspace,
+                  onTap: () => Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.webview,
+                    arguments: {'action': 'new_project'},
+                  ),
                 ),
                 _CTAButton(
                   width: ctaWidth,
@@ -401,7 +494,13 @@ class _GalaxyPanel extends StatelessWidget {
                   ),
                   borderColor: const Color(0xFFE4FFFF),
                   shadowColor: const Color(0xFF7EE5F6),
-                  onTap: goToWorkspace,
+                  onTap: (isLoading || !hasProjects)
+                      ? null
+                      : () => Navigator.pushReplacementNamed(
+                            context,
+                            AppRoutes.webview,
+                            arguments: {'action': 'load_last'},
+                          ),
                 ),
                 _CTAButton(
                   width: ctaWidth,
@@ -414,7 +513,7 @@ class _GalaxyPanel extends StatelessWidget {
                   ),
                   borderColor: const Color(0xFFF6EEFF),
                   shadowColor: const Color(0xFFBEAEFF),
-                  onTap: () {},
+                  onTap: onMissionControlTap,
                 ),
               ],
             ),
@@ -456,44 +555,49 @@ class _CTAButton extends StatelessWidget {
       letterSpacing: 0.2,
       color: const Color(0xFF11203D),
     );
+    
+    final bool isEnabled = onTap != null;
 
-    return InkWell(
-      borderRadius: radius,
-      onTap: onTap,
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: radius,
-          border: Border.all(color: borderColor, width: height * 0.06),
-          boxShadow: [
-            BoxShadow(
-              color: shadowColor.withOpacity(0.55),
-              blurRadius: 24,
-              spreadRadius: 2,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        padding: EdgeInsets.symmetric(horizontal: height * 0.36),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: height * 0.4, color: iconColor),
-            SizedBox(width: height * 0.24),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: textStyle,
+    return Opacity(
+      opacity: isEnabled ? 1.0 : 0.5,
+      child: InkWell(
+        borderRadius: radius,
+        onTap: onTap,
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            gradient: gradient,
+            borderRadius: radius,
+            border: Border.all(color: borderColor, width: height * 0.06),
+            boxShadow: [
+              BoxShadow(
+                color: shadowColor.withAlpha(140),
+                blurRadius: 24,
+                spreadRadius: 2,
+                offset: const Offset(0, 10),
               ),
-            ),
-          ],
+            ],
+          ),
+          padding: EdgeInsets.symmetric(horizontal: height * 0.36),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: height * 0.4, color: iconColor),
+              SizedBox(width: height * 0.24),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: textStyle,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+      )
     );
   }
 }

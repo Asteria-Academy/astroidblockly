@@ -3,30 +3,25 @@
 export interface RobotProfile {
   name: string;
   commands: {
-    // Drive System
-    moveForward: 'MOVE_FORWARD';
-    moveBackward: 'MOVE_BACKWARD';
-    turnLeft: 'TURN_LEFT';
-    turnRight: 'TURN_RIGHT';
-    spinLeft: 'SPIN_LEFT';
-    spinRight: 'SPIN_RIGHT';
-    stop: 'STOP';
+    // System
+    estop: 'ESTOP';
+    
+    // Direct Drive & Sequential
+    driveDirect: 'DRIVE_DIRECT';
+    moveTimed: 'MOVE_TIMED';
+    turnTimed: 'TURN_TIMED';
+    wait: 'WAIT';
+    
+    // Head & Gripper
+    setHeadPosition: 'SET_HEAD_POSITION';
+    setGripper: 'SET_GRIPPER';
 
-    // Neck Servos
-    setNeckPitch: 'SET_NECK_PITCH'; // Param: angle
-    setNeckYaw: 'SET_NECK_YAW';     // Param: angle
+    // Looks
+    setLedColor: 'SET_LED_COLOR';
+    displayIcon: 'DISPLAY_ICON';
 
-    // Head
-    setLed: 'SET_LED';               // Param: r, g, b
-    showExpression: 'SHOW_EXPRESSION'; // Param: emotion ('HAPPY', 'SAD', etc.)
-
-    // Gripper (High-level commands)
-    openGripper: 'OPEN_GRIPPER';
-    closeGripper: 'CLOSE_GRIPPER';
-
-    // Audio
-    playSound: 'PLAY_SOUND';
-    danceMode: 'DANCE_MODE';
+    // Sound
+    playInternalSound: 'PLAY_INTERNAL_SOUND';
 
     // Sensors
     getSensorData: 'GET_SENSOR_DATA';
@@ -36,26 +31,21 @@ export interface RobotProfile {
 export const astroidV2: RobotProfile = {
   name: 'Astroid V2 (ESP32)',
   commands: {
+    // System
+    estop: 'ESTOP',
     // Drive
-    moveForward: 'MOVE_FORWARD',
-    moveBackward: 'MOVE_BACKWARD',
-    turnLeft: 'TURN_LEFT',
-    turnRight: 'TURN_RIGHT',
-    spinLeft: 'SPIN_LEFT',
-    spinRight: 'SPIN_RIGHT',
-    stop: 'STOP',
-    // Neck
-    setNeckPitch: 'SET_NECK_PITCH',
-    setNeckYaw: 'SET_NECK_YAW',
-    // Head
-    setLed: 'SET_LED',
-    showExpression: 'SHOW_EXPRESSION',
-    // Gripper
-    openGripper: 'OPEN_GRIPPER',
-    closeGripper: 'CLOSE_GRIPPER',
-    // Audio
-    playSound: 'PLAY_SOUND',
-    danceMode: 'DANCE_MODE',
+    driveDirect: 'DRIVE_DIRECT',
+    moveTimed: 'MOVE_TIMED',
+    turnTimed: 'TURN_TIMED',
+    wait: 'WAIT',
+    // Head & Gripper
+    setHeadPosition: 'SET_HEAD_POSITION',
+    setGripper: 'SET_GRIPPER',
+    // Looks
+    setLedColor: 'SET_LED_COLOR',
+    displayIcon: 'DISPLAY_ICON',
+    // Sound
+    playInternalSound: 'PLAY_INTERNAL_SOUND',
     // Sensors
     getSensorData: 'GET_SENSOR_DATA',
   },

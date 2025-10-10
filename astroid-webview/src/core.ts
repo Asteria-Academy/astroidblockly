@@ -2,13 +2,16 @@
 
 import * as Blockly from 'blockly';
 import { FieldColourHsvSliders } from '@blockly/field-colour-hsv-sliders';
+import { FieldSlider } from '@blockly/field-slider';
 
 import './categories/motors';
-import './categories/head';
-import './categories/neck';
-import './categories/gripper';
+import './categories/mechanisms';
+import './categories/looks';
+import './categories/audio';
+import './categories/sensors';
 import './categories/control';
 import './categories/operators';
+import './categories/events';
 
 const styleMap: { [key: string]: string } = {
   // Control
@@ -19,7 +22,8 @@ const styleMap: { [key: string]: string } = {
   controls_for: 'control_blocks',
   controls_forEach: 'control_blocks',
   controls_flow_statements: 'control_blocks',
-  // Logic & Math (mapped to 'operators')
+  
+  // Logic & Math
   logic_compare: 'operators_blocks',
   logic_operation: 'operators_blocks',
   logic_negate: 'operators_blocks',
@@ -38,13 +42,13 @@ const styleMap: { [key: string]: string } = {
   math_constrain: 'operators_blocks',
   math_random_int: 'operators_blocks',
   math_random_float: 'operators_blocks',
+  
   // Text
   text: 'text_blocks',
   text_join: 'text_blocks',
   text_append: 'variables_blocks',
   text_length: 'operators_blocks',
   text_charAt: 'operators_blocks',
-  // We'll map lists to operators for now, can be changed
   lists_create_with: 'operators_blocks',
   lists_length: 'operators_blocks',
 };
@@ -55,6 +59,7 @@ export function initializeAstroidEditor(): void {
   if (isInitialized) return;
 
   Blockly.fieldRegistry.register('field_colour_hsv_sliders', FieldColourHsvSliders);
+  Blockly.fieldRegistry.register('field_slider', FieldSlider);
 
   for (const blockType in styleMap) {
     if (Blockly.Blocks[blockType]) {

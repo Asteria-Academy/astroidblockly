@@ -22,42 +22,35 @@ function adjust(hex: string, amount: number): string {
 const fontStyle: Blockly.Theme.FontStyle = {
   family: '"Poppins", "Verdana", "Segoe UI", Helvetica, sans-serif',
   weight: '500',
-  size: 12,
+  size: 11,
 };
 
 // --- COMPONENT STYLES ---
-const componentStyles: Blockly.Theme.ComponentStyle = {
-  workspaceBackgroundColour: '#f9fafb',
-  toolboxBackgroundColour: '#ffffff',
-  toolboxForegroundColour: '#1e293b',
-  flyoutBackgroundColour: '#f1f5f9',
-  flyoutForegroundColour: '#1e293b',
-  flyoutOpacity: 0.97,
-  scrollbarColour: '#cbd5e1',
-  insertionMarkerColour: '#F46718',
-  insertionMarkerOpacity: 0.35,
+const darkComponentStyles: Blockly.Theme.ComponentStyle = {
+  workspaceBackgroundColour: '#0B1433',
+  toolboxBackgroundColour: '#122A4D',
+  toolboxForegroundColour: '#E0E0E0',
+  flyoutBackgroundColour: '#1A244A',
+  flyoutForegroundColour: '#E0E0E0',
+  flyoutOpacity: 0.98,
+  scrollbarColour: '#454A5A',
+  insertionMarkerColour: '#A4F2FF',
+  insertionMarkerOpacity: 0.4,
 };
 
 // --- CATEGORY AND BLOCK STYLES ---
 const categoryColors = {
-  // Event/Trigger
   events: '#f59e0b',
-  
-  // Robot Actions
   motors: '#0D65D9',
   motion: '#00A1AA',
   looks: '#8057E3',
-  functions: '#D94575',
   audio: '#CF2292',
-  
-  // Logic & Sensing
   control: '#F46718',
   operators: '#40BF4A',
   sensors: '#0891B2',
-  
-  // Data
-  text: '#0EA5E9',
   variables: '#FF8C1A',
+  text: '#0EA5E9', 
+  functions: '#D94575',
 };
 
 
@@ -76,9 +69,9 @@ for (const key in categoryColors) {
 }
 blockStyles.events_blocks.hat = 'cap';
 
-const AstroidTheme = new Blockly.Theme('astroid-theme', blockStyles, categoryStyles, componentStyles);
-AstroidTheme.fontStyle = fontStyle;
+const AstroidDarkTheme = new Blockly.Theme('astroid-dark-theme', blockStyles, categoryStyles, darkComponentStyles);
+AstroidDarkTheme.fontStyle = fontStyle;
 
 export function getAstroidTheme(): Blockly.Theme {
-  return AstroidTheme;
+  return AstroidDarkTheme;
 }

@@ -4,9 +4,8 @@
 import 'blockly/blocks';
 
 import './motors';
-import './neck';
-import './head';
-import './gripper';
+import './mechanisms';
+import './looks';
 import './sensors';
 import './audio';
 import './control';

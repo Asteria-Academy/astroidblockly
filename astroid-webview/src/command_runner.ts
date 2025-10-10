@@ -5,13 +5,6 @@ interface CommandObject {
   params: { [key: string]: any };
 }
 
-interface CustomWindow extends Window {
-  Print?: {
-    postMessage: (message: string) => void;
-  };
-}
-declare const window: CustomWindow;
-
 export function runCommands(generatedCode: string): void {
   console.log('--- Raw Generated Code ---');
   console.log(generatedCode);
@@ -31,9 +24,9 @@ export function runCommands(generatedCode: string): void {
   console.log('--- Parsed Command Array (IR) ---');
   console.log(commandArray);  
 
-  if (window.Print) {
-    window.Print.postMessage(JSON.stringify(commandArray));
+  if (window.astroidAppChannel) {
+    window.astroidAppChannel(JSON.stringify(commandArray));
   } else {
-    console.log("Running in a standard browser. 'Print' channel not found.");
+    console.log("Running in a standard browser. 'astroidAppChannel' not found.");
   }
 }

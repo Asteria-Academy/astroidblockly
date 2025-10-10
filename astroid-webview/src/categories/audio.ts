@@ -7,60 +7,49 @@ import { astroidV2 } from '../robotProfiles';
 // --- Block Definitions ---
 Blockly.defineBlocksWithJsonArray([
   {
-    "type": "audio_play_sound",
-    "message0": "play sound %1",
+    "type": "audio_play_internal_sound",
+    "message0": "Play sound %1",
     "args0": [
       {
         "type": "field_dropdown",
-        "name": "SOUND",
+        "name": "SOUND_ID",
         "options": [
-          ["Beep", "BEEP"],
-          ["Siren", "SIREN"],
-          ["Success", "SUCCESS"],
-          ["Error", "ERROR"]
+          ["Beep", "1"],
+          ["Siren", "2"],
+          ["Success", "3"],
+          ["Error", "4"]
         ]
       }
     ],
     "previousStatement": null,
     "nextStatement": null,
     "style": "audio_blocks",
-    "tooltip": "Plays a pre-programmed sound from the robot's speaker."
+    "tooltip": "Plays a pre-loaded sound effect from the robot's speaker."
   },
-  {
-    "type": "audio_dance",
-    "message0": "start dance mode",
-    "previousStatement": null,
-    "nextStatement": null,
-    "style": "audio_blocks",
-    "tooltip": "Makes the robot perform a dance routine."
-  }
 ]);
 
 // --- Block Generators ---
-javascriptGenerator.forBlock['audio_play_sound'] = function(block, _generator) {
-  const sound = block.getFieldValue('SOUND');
+javascriptGenerator.forBlock['audio_play_internal_sound'] = function(block, _generator) {
+  const soundIdString = block.getFieldValue('SOUND_ID');
+  
+  const soundIdNumber = parseInt(soundIdString, 10);
+
   const commandObj = {
-    command: astroidV2.commands.playSound,
-    params: { sound: sound }
+    command: astroidV2.commands.playInternalSound,
+    params: {
+      sound_id: soundIdNumber 
+    }
   };
   return JSON.stringify(commandObj) + ';';
 };
 
-javascriptGenerator.forBlock['audio_dance'] = function(_block, _generator) {
-  const commandObj = {
-    command: astroidV2.commands.danceMode,
-    params: {}
-  };
-  return JSON.stringify(commandObj) + ';';
-};
 
 // --- Toolbox Definition ---
 export const audioCategory = {
   kind: 'category',
-  name: 'Audio',
+  name: 'Sound',
   categorystyle: 'audio_category',
   contents: [
-    { kind: 'block', type: 'audio_play_sound' },
-    { kind: 'block', type: 'audio_dance' },
+    { kind: 'block', type: 'audio_play_internal_sound' },
   ],
 };

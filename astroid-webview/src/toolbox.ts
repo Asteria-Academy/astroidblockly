@@ -1,23 +1,24 @@
 // src/toolbox.ts
 import * as Blockly from 'blockly/core';
 
+// Import the final, refactored categories
 import { motorsCategory } from './categories/motors';
-import { headCategory } from './categories/head';
-import { neckCategory } from './categories/neck';
-import { gripperCategory } from './categories/gripper';
-import { controlCategory } from './categories/control';
-import { operatorsCategory } from './categories/operators';
+import { mechanismsCategory } from './categories/mechanisms';
+import { looksCategory } from './categories/looks';
 import { audioCategory } from './categories/audio';
 import { sensorsCategory } from './categories/sensors';
+
+// Import the standard logic categories
+import { controlCategory } from './categories/control';
+import { operatorsCategory } from './categories/operators';
 
 export function getAstroidToolbox(): Blockly.utils.toolbox.ToolboxDefinition {
   return {
     kind: 'categoryToolbox',
     contents: [
       motorsCategory,
-      neckCategory,
-      headCategory,
-      gripperCategory,
+      mechanismsCategory,
+      looksCategory,
       audioCategory,
       { kind: 'sep' },
       controlCategory,

@@ -26,3 +26,63 @@ body, html {
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
+
+.blocklyScrollbarHandle {
+  display: none !important;
+}
+
+.blocklyScrollbarBackground {
+  fill-opacity: 0 !important;
+}
+
+.blocklyToolboxCategory.blockly-tree-selected {
+  background-color: transparent !important; /* Prevents a grey background on selection */
+  outline: none !important;
+}
+
+.blocklyToolboxCategory.blockly-tree-selected > .blocklyTreeRow .blocklyTreeLabel {
+  color: #A4F2FF !important;
+  font-weight: 600;
+}
+
+.blocklyTreeLabel {
+  font-size: 13px !important;
+  font-weight: 500;
+}
+
+.icon-button {
+    position: absolute;
+    z-index: 100;
+    width: 48px;
+    height: 48px;
+    background-color: #1A244A;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border: 2px solid #454A5A;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    transition: all 0.2s ease-in-out;
+}
+
+.icon-button:hover {
+    background-color: #2a3868;
+    border-color: #A4F2FF;
+}
+
+.icon-button svg {
+    width: 24px;
+    height: 24px;
+    fill: #E0E0E0;
+}
+
+.top-right {
+    top: 16px;
+    right: 16px;
+}
+
+.top-right-secondary {
+    top: 16px;
+    right: 76px;
+}

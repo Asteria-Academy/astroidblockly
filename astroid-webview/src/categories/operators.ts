@@ -2,7 +2,6 @@
 import { javascriptGenerator, Order } from 'blockly/javascript';
 
 // --- JavaScript Generators for Standard Blocks ---
-
 javascriptGenerator.forBlock['text'] = function(block) {
   const textValue = block.getFieldValue('TEXT');
   const code = JSON.stringify(textValue);

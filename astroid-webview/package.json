@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postbuild": "rimraf ../astroid_test_webview_app/assets/web_build && cpr dist ../astroid_test_webview_app/assets/web_build --overwrite"
   },
   "devDependencies": {
+    "cpr": "^3.0.1",
+    "rimraf": "^6.0.1",
     "typescript": "~5.9.3",
     "vite": "^7.1.7"
   },
@@ -16,6 +19,7 @@
     "@blockly/continuous-toolbox": "^7.0.2",
     "@blockly/field-colour": "^6.0.5",
     "@blockly/field-colour-hsv-sliders": "^6.0.5",
+    "@blockly/field-slider": "^8.0.3",
     "@blockly/theme-dark": "^8.0.1",
     "blockly": "^12.3.1"
   }
