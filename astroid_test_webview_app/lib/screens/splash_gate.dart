@@ -1,11 +1,13 @@
-// lib/screens/splash_gate.dart
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../router/app_router.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
-/// Server lokal utk memuat Blockly dari /assets
+// A flag to easily turn the on-screen logs on or off.
+// SET THIS TO 'false' BEFORE BUILDING THE FINAL APK FOR YOUR FRIEND.
+const bool _showDebugLogs = false;
+
 final InAppLocalhostServer localhostServer = InAppLocalhostServer(
   port: 8080,
   documentRoot: 'assets',
@@ -18,8 +20,23 @@ class SplashGate extends StatefulWidget {
 }
 
 class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
-  late final AnimationController _progressCtl; // 0..1
-  late final AnimationController _meteorCtl; // bobbing kecil
+  late final AnimationController _progressCtl;
+  late final AnimationController _meteorCtl;
+
+  // --- ON-SCREEN LOGGER STATE ---
+  final List<String> _logs = [];
+
+  // Helper method to add a log and update the UI
+  void _log(String message) {
+    if (mounted) {
+      setState(() {
+        // Add timestamp for clarity
+        final timestamp = DateTime.now().toIso8601String().split('T').last.substring(0, 8);
+        _logs.add('[$timestamp] $message');
+      });
+    }
+  }
+  // --- END LOGGER STATE ---
 
   @override
   void initState() {
@@ -28,6 +45,7 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
         AnimationController(vsync: this, duration: const Duration(seconds: 10))
           ..addStatusListener((s) {
             if (s == AnimationStatus.completed) {
+              _log("Animation completed. Navigating to home.");
               if (!mounted) return;
               Navigator.pushReplacementNamed(context, AppRoutes.home);
             }
@@ -42,32 +60,53 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
   }
 
   Future<void> _boot() async {
-    // Precache dulu supaya layer tidak “pop in”
-    Future<void> safePrecache(String path) async {
+    try {
+      _log("Boot process started.");
+
+      _log("Starting localhost server...");
+      await localhostServer.start().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          _log("WARN: Server start timed out (might be running).");
+        },
+      ).catchError((e) {
+        _log("ERROR: Server start failed (ignoring): $e");
+      });
+      _log("Server task finished.");
+      
+      _log("Precaching assets...");
+      await _precacheAssets();
+      _log("Asset precache finished.");
+
+      _log("Starting animation...");
+      _progressCtl.forward();
+      
+    } catch (e) {
+      _log("FATAL ERROR during boot: $e");
+      if(mounted) {
+         Navigator.pushReplacementNamed(context, AppRoutes.home);
+      }
+    }
+  }
+
+  Future<void> _precacheAssets() async {
+    final imagePaths = [
+      'assets/splash/bg.png',
+      'assets/splash/border.png',
+      'assets/brand/logo.png',
+      'assets/splash/bar_track.png',
+      'assets/splash/bar_fill.png',
+      'assets/splash/meteor.png',
+    ];
+
+    // Use Future.wait to do them in parallel for speed
+    await Future.wait(imagePaths.map((path) async {
       try {
         await precacheImage(AssetImage(path), context);
       } catch (e) {
-        debugPrint('precache skip $path -> $e');
+        _log('WARN: Precache failed for $path');
       }
-    }
-
-    await Future.wait([
-      safePrecache('assets/splash/bg.png'),
-      safePrecache('assets/splash/border.png'),
-      safePrecache('assets/brand/logo.png'),
-      safePrecache('assets/splash/bar_track.png'),
-      safePrecache('assets/splash/bar_fill.png'),
-      safePrecache('assets/splash/meteor.png'),
-    ]);
-
-    // Start server (abaikan error kalau sudah start)
-    try {
-      await localhostServer.start();
-    } catch (_) {}
-
-    // Jalankan animasi progress (kalau perlu, kamu bisa update manual step-by-step)
-    _progressCtl.forward(from: 0);
-    debugPrint('start anim -> ${_progressCtl.value}');
+    }));
   }
 
   @override
@@ -77,6 +116,40 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  // --- NEW WIDGET to display logs ---
+  Widget _buildLogDisplay() {
+    if (!_showDebugLogs) {
+      return const SizedBox.shrink(); // Return nothing if logs are disabled
+    }
+
+    return Positioned(
+      bottom: 30,
+      left: 10,
+      right: 10,
+      height: 150, // Set a fixed height
+      child: Container(
+        padding: const EdgeInsets.all(8.0),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: SingleChildScrollView(
+          reverse: true, // Auto-scrolls to the bottom
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: _logs.map((logMsg) => Text(
+              logMsg,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 10,
+                color: Colors.white,
+              ),
+            )).toList(),
+          ),
+        ),
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -222,6 +295,7 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
+                _buildLogDisplay(),
               ],
             );
           },
