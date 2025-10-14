@@ -130,7 +130,7 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
       child: Container(
         padding: const EdgeInsets.all(8.0),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.6),
+          color: const Color.fromARGB(153, 0, 0, 0),
           borderRadius: BorderRadius.circular(8),
         ),
         child: SingleChildScrollView(

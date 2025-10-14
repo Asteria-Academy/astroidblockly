@@ -1,7 +1,6 @@
 // src/categories/events.ts
 
 import * as Blockly from 'blockly/core';
-import { javascriptGenerator } from 'blockly/javascript';
 
 Blockly.defineBlocksWithJsonArray([
   {
@@ -12,14 +11,6 @@ Blockly.defineBlocksWithJsonArray([
     "tooltip": "This block is the starting point for your adventure."
   }
 ]);
-
-javascriptGenerator.forBlock['program_start'] = function(block, generator) {
-  const nextBlock = block.getNextBlock();
-  if (nextBlock) {
-    return generator.blockToCode(nextBlock);
-  }
-  return '';
-};
 
 export const eventsCategory = {
   kind: 'category',

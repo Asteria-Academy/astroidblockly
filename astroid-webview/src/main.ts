@@ -42,6 +42,7 @@ const btStatusButton = document.getElementById('bt-status-button');
 
 let primaryWorkspace: Blockly.WorkspaceSvg;
 let currentProjectId: string | null = null;
+let saveTimeout: number | null = null;
 
 function getProjectsData() {
   const data = localStorage.getItem('astroid_projects');
@@ -152,19 +153,28 @@ function initializeWorkspace() {
   saveProjectsData(data);
 
   primaryWorkspace.addChangeListener((event: Blockly.Events.Abstract) => {
-    if (event.isUiEvent || primaryWorkspace.isDragging() || !currentProjectId) return;
-    
-    const workspaceJson = Blockly.serialization.workspaces.save(primaryWorkspace);
-    let currentData = getProjectsData();
-    const projectIndex = currentData.projects.findIndex((p: Project) => p.id === currentProjectId);
-
-    if (projectIndex !== -1) {
-      currentData.projects[projectIndex].workspace_json = workspaceJson;
-      currentData.projects[projectIndex].last_modified = Date.now();
-      currentData.last_opened_id = currentProjectId;
-      saveProjectsData(currentData);
-      console.log("Project auto-saved.");
+    if (event.isUiEvent || primaryWorkspace.isDragging() || !currentProjectId) {
+      return;
     }
+
+    if (saveTimeout !== null) {
+      clearTimeout(saveTimeout);
+    }
+
+    saveTimeout = setTimeout(() => {
+      console.log("Debounced save triggered.");
+      const workspaceJson = Blockly.serialization.workspaces.save(primaryWorkspace);
+      let currentData = getProjectsData();
+      const projectIndex = currentData.projects.findIndex((p: Project) => p.id === currentProjectId);
+
+      if (projectIndex !== -1) {
+        currentData.projects[projectIndex].workspace_json = workspaceJson;
+        currentData.projects[projectIndex].last_modified = Date.now();
+        currentData.last_opened_id = currentProjectId;
+        saveProjectsData(currentData);
+        console.log("Project auto-saved.");
+      }
+    }, 1000);
   });
 
   playButton.addEventListener('click', handleRunCode);
@@ -189,6 +199,9 @@ function createNewProject(data: any) {
     data.projects.push(newProject);
     currentProjectId = newId;
     data.last_opened_id = newId;
+
+    saveProjectsData(data);
+
     Blockly.serialization.workspaces.load(INITIAL_WORKSPACE_JSON, primaryWorkspace);
 }
 
@@ -202,9 +215,16 @@ function handleRunCode() {
   const startBlock = topBlocks.find(block => block.type === 'program_start');
 
   if (startBlock) {
-    generatedCode = javascriptGenerator.blockToCode(startBlock) as string;
+    const firstCommandBlock = startBlock.getNextBlock();
+    
+    if (firstCommandBlock) {
+      generatedCode = javascriptGenerator.blockToCode(firstCommandBlock) as string;
+    } else {
+      console.log("No commands attached to the start block.");
+      generatedCode = '';
+    }
   } else {
-    console.warn("No 'program_start' block found. Generating code from all blocks.");
+    console.warn("No 'program_start' block found. Is the workspace corrupted?");
     generatedCode = javascriptGenerator.workspaceToCode(primaryWorkspace);
   }
   
