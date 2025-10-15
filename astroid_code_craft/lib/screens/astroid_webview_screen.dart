@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:collection';
-import 'package:astroid_test_webview_app/services/bluetooth_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import '../services/bluetooth_service.dart';
 import '../router/app_router.dart';
 
 class AstroidWebViewScreen extends StatefulWidget {

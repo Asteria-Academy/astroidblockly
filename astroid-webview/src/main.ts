@@ -108,7 +108,7 @@ function initializeWorkspace() {
     toolbox: getAstroidToolbox(),
     renderer: "zelos",
     trashcan: true,
-    zoom: { controls: true, wheel: true, startScale: 0.65, maxScale: 1.25, minScale: 0.6, scaleSpeed: 1.05 },
+    zoom: { controls: true, wheel: true, startScale: 0.65, maxScale: 1.25, minScale: 0.4, scaleSpeed: 1.05 },
     grid: { spacing: 20, length: 3, colour: '#444', snap: true },
     move: { scrollbars: true, drag: true, wheel: true },
     plugins: {

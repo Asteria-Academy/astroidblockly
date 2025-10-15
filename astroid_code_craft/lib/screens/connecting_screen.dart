@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:astroid_test_webview_app/services/bluetooth_service.dart';
+import '../services/bluetooth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 
