@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "postbuild": "rimraf ../astroid_test_webview_app/assets/web_build && cpr dist ../astroid_test_webview_app/assets/web_build --overwrite"
+    "postbuild": "rimraf ../astroid_code_craft/assets/web_build && cpr dist ../astroid_code_craft/assets/web_build --overwrite"
   },
   "devDependencies": {
     "cpr": "^3.0.1",
