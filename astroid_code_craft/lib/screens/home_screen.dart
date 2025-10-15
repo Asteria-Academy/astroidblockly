@@ -146,20 +146,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       ),
                     ),
-
-                    // 4) Frame HUD overlay paling atas (seperti di splash)
-                    Positioned(
-                      top: -15,
-                      left: -15,
-                      width: c.maxWidth * frameInsetScale,
-                      height: c.maxHeight * frameInsetScale,
-                      child: IgnorePointer(
-                        child: Image.asset(
-                          'assets/splash/border.png',
-                          fit: BoxFit.fill,
-                        ),
-                      ),
-                    ),
                   ],
                 );
               },
@@ -383,7 +369,7 @@ class _GalaxyPanel extends StatelessWidget {
     final outerRadius = BorderRadius.circular(shortestSide * 0.08);
     final innerRadius = BorderRadius.circular(shortestSide * 0.07);
     final panelPadding = shortestSide * 0.05;
-    final logoVisualWidth = math.min(width * 0.5, height * 0.7);
+    final logoVisualWidth = math.min(width * 0.6, height * 0.8);
     final logoSlotHeight = height * 0.18;
     final buttonSpacing = ctaWidth * 0.08;
     final runSpacing = ctaHeight * 0.35;

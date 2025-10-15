@@ -92,8 +92,7 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
   Future<void> _precacheAssets() async {
     final imagePaths = [
       'assets/splash/bg.png',
-      'assets/splash/border.png',
-      'assets/brand/logo.png',
+      'assets/brand/logo_crop.png',
       'assets/splash/bar_track.png',
       'assets/splash/bar_fill.png',
       'assets/splash/meteor.png',
@@ -177,7 +176,7 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
                 // 2) Title “ASTROID BLOCKLY”
                 Align(
                   alignment: const Alignment(0, -0.2),
-                  child: Image.asset('assets/brand/logo.png', width: titleW),
+                  child: Image.asset('assets/brand/logo_crop.png', width: titleW/1.5),
                 ),
 
                 // 3) Progress bar (track + fill + meteor)
@@ -267,21 +266,8 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-                // 4) Frame HUD di paling atas
-                Positioned(
-                  top: -15,
-                  left: -15,
-                  width: c.maxWidth * 1.05, // Set manually for width
-                  height: c.maxHeight * 1.05, // Set manually for height
-                  child: IgnorePointer(
-                    child: Image.asset(
-                      'assets/splash/border.png',
-                      fit: BoxFit.fill,
-                    ),
-                  ),
-                ),
 
-                // 5) Branding
+                // 4) Branding
                 Positioned(
                   bottom: 5,
                   left: 0,

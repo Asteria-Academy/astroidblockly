@@ -43,6 +43,10 @@ class BluetoothService with ChangeNotifier {
   SequencerState _sequencerState = SequencerState.idle;
   SequencerState get sequencerState => _sequencerState;
 
+  int _batteryLevel = -1;
+  int get batteryLevel => _batteryLevel;
+
+  bool get isConnected => _connectionState == fbp.BluetoothConnectionState.connected;
   bool _stopRequested = false;
 
   void _updateConnectionState(BluetoothConnectionState newState) {
@@ -108,6 +112,7 @@ class BluetoothService with ChangeNotifier {
       _connectedDevice = device;
       await _discoverServicesAndCharacteristics(device);      
       _updateConnectionState(BluetoothConnectionState.connected);
+      _startBatteryMonitor();
       
       _connectionStateSubscription?.cancel();
       _connectionStateSubscription = device.connectionState.listen((state) {
@@ -124,6 +129,7 @@ class BluetoothService with ChangeNotifier {
   }
 
   Future<void> disconnect() async {
+    _stopBatteryMonitor();
     await _connectionStateSubscription?.cancel();
     _connectionStateSubscription = null;
     if (_connectedDevice != null) {
@@ -160,7 +166,16 @@ class BluetoothService with ChangeNotifier {
       _txCharacteristic!.lastValueStream.listen((value) {
         final String data = String.fromCharCodes(value);
         if (data.isNotEmpty) {
-           debugPrint("Received data from robot: $data");
+          debugPrint("Received data from robot: $data");
+          try {
+             final Map<String, dynamic> response = jsonDecode(data);
+             if (response['status'] == 'BATTERY') {
+               _batteryLevel = response['level'] as int;
+               notifyListeners();
+             }
+           } catch (e) {
+             debugPrint("Could not parse JSON response from robot: $e");
+           }
         }
       });
     }
@@ -168,6 +183,23 @@ class BluetoothService with ChangeNotifier {
       debugPrint("Error: Could not find all required characteristics. Disconnecting.");
       disconnect();
     }
+  }
+
+  Timer? _batteryTimer;
+
+  void _startBatteryMonitor() {
+    _batteryTimer?.cancel();
+    _batteryTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (isConnected) {
+        sendCommand('{"command":"GET_BATTERY_STATUS","params":{}}');
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  void _stopBatteryMonitor() {
+    _batteryTimer?.cancel();
   }
 
   Future<void> runCommandSequence(String commandJsonArray) async {
