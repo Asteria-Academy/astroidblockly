@@ -16,6 +16,8 @@ declare global {
     getProjectList: () => string;
     deleteProject: (projectId: string) => void;
     renameProject: (projectId: string, newName: string) => void;
+    setSequencerState: (state: 'running' | 'idle') => void;
+    generateCodeForExecution: () => string;
   }
 }
 
@@ -96,6 +98,22 @@ function saveProjectsData(data: any) {
   }
 };
 
+(window as any).generateCodeForExecution = (): string => {
+  if (!primaryWorkspace) return '';
+  const topBlocks = primaryWorkspace.getTopBlocks(true);
+  const startBlock = topBlocks.find(block => block.type === 'program_start');
+  if (startBlock) {
+    const firstCommandBlock = startBlock.getNextBlock();
+    if (firstCommandBlock) {
+      const code = javascriptGenerator.blockToCode(firstCommandBlock) as string;
+      const commands = code.split(';').filter(c => c.trim() !== '');
+      const commandArray = commands.map(c => JSON.parse(c));
+      return JSON.stringify(commandArray);
+    }
+  }
+  return '[]'; // Return empty JSON array
+};
+
 function initializeWorkspace() {
   if (!blocklyDiv || !playButton || !btStatusButton) {
     throw new Error('Required DOM elements not found!');
@@ -121,8 +139,24 @@ function initializeWorkspace() {
   const urlParams = new URLSearchParams(window.location.search);
   const action = urlParams.get('action');
   const projectId = urlParams.get('id');
+  const stopButtonSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"></path></svg>`;
+  const playButtonSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>`;
 
   let data = getProjectsData();
+
+  window.setSequencerState = (state: 'running' | 'idle') => {
+    if (state === 'running') {
+      playButton.innerHTML = stopButtonSvg;
+    } else {
+      playButton.innerHTML = playButtonSvg;
+    }
+  };
+
+  playButton.addEventListener('click', () => {
+    if (window.astroidAppChannel) {
+      window.astroidAppChannel('{"event":"play_stop_toggled"}');
+    }
+  });
 
   if (action === 'load_project' && projectId) {
     const projectToLoad = data.projects.find((p: Project) => p.id === projectId);
@@ -206,29 +240,8 @@ function createNewProject(data: any) {
 }
 
 function handleRunCode() {
-  if (!primaryWorkspace) {
-    console.error("Workspace is not initialized.");
-    return;
-  }
-  const topBlocks = primaryWorkspace.getTopBlocks(true);
-  let generatedCode = '';
-  const startBlock = topBlocks.find(block => block.type === 'program_start');
-
-  if (startBlock) {
-    const firstCommandBlock = startBlock.getNextBlock();
-    
-    if (firstCommandBlock) {
-      generatedCode = javascriptGenerator.blockToCode(firstCommandBlock) as string;
-    } else {
-      console.log("No commands attached to the start block.");
-      generatedCode = '';
-    }
-  } else {
-    console.warn("No 'program_start' block found. Is the workspace corrupted?");
-    generatedCode = javascriptGenerator.workspaceToCode(primaryWorkspace);
-  }
-  
-  runCommands(generatedCode);
+  const code = window.generateCodeForExecution();
+  runCommands(code);
 }
 
 initializeWorkspace();

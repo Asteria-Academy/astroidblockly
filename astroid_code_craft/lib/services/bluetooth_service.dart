@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 
@@ -12,6 +13,11 @@ enum BluetoothConnectionState {
   connecting,
   connected,
   connectionFailed,
+}
+
+enum SequencerState {
+  idle,
+  running,
 }
 
 class BluetoothService with ChangeNotifier {
@@ -33,6 +39,11 @@ class BluetoothService with ChangeNotifier {
 
   fbp.BluetoothCharacteristic? _rxCharacteristic;
   fbp.BluetoothCharacteristic? _txCharacteristic;
+
+  SequencerState _sequencerState = SequencerState.idle;
+  SequencerState get sequencerState => _sequencerState;
+
+  bool _stopRequested = false;
 
   void _updateConnectionState(BluetoothConnectionState newState) {
     _connectionState = newState;
@@ -156,6 +167,89 @@ class BluetoothService with ChangeNotifier {
     if (_rxCharacteristic == null || _txCharacteristic == null) {
       debugPrint("Error: Could not find all required characteristics. Disconnecting.");
       disconnect();
+    }
+  }
+
+  Future<void> runCommandSequence(String commandJsonArray) async {
+    if (_sequencerState == SequencerState.running) {
+      debugPrint("Sequencer is already running.");
+      return;
+    }
+    if (connectionState != BluetoothConnectionState.connected) {
+      debugPrint("Cannot run sequence: Robot not connected.");
+      return;
+    }
+
+    _sequencerState = SequencerState.running;
+    _stopRequested = false;
+    notifyListeners();
+    
+    debugPrint("--- Starting Command Sequence ---");
+    
+    try {
+      List<dynamic> commands = jsonDecode(commandJsonArray);
+
+      await _executeBlock(commands, 0);
+    } catch (e) {
+      debugPrint("Error processing command sequence: $e");
+    }
+    
+    debugPrint("--- Sequence Finished ---");
+    await sendCommand('{"command":"DRIVE_DIRECT","params":{"left_speed":0,"right_speed":0}}');
+    if (!_stopRequested) {
+      await sendCommand('{"command":"DRIVE_DIRECT","params":{"left_speed":0,"right_speed":0}}');
+    }
+
+    _sequencerState = SequencerState.idle;
+    _stopRequested = false;
+    notifyListeners();
+  }
+
+  Future<int> _executeBlock(List<dynamic> commands, int index) async {
+    int i = index;
+    while (i < commands.length) {
+      if (_stopRequested) return commands.length;
+
+      final command = commands[i] as Map<String, dynamic>;
+      final String commandName = command['command'];
+      
+      if (commandName == 'META_START_LOOP') {
+        final int times = command['params']['times'];
+        for (int j = 0; j < times; j++) {
+          if (_stopRequested) break;
+          i = await _executeBlock(commands, i + 1); 
+        }
+        int nestLevel = 0;
+        i++;
+        while (i < commands.length) {
+           final nextCmd = commands[i] as Map<String, dynamic>;
+           if (nextCmd['command'] == 'META_START_LOOP') nestLevel++;
+           if (nextCmd['command'] == 'META_END_LOOP') {
+             if (nestLevel == 0) break;
+             nestLevel--;
+           }
+           i++;
+        }
+
+      } else if (commandName == 'META_END_LOOP') {
+        return i;
+      } else if (commandName == 'WAIT') {
+        final int duration = command['params']['duration_ms'];
+        await Future.delayed(Duration(milliseconds: duration));
+      } else {
+        final String commandString = jsonEncode(command);
+        await sendCommand(commandString);
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+
+      i++;
+    }
+    return i;
+  }
+
+  void stopSequence() {
+    if (_sequencerState == SequencerState.running) {
+      _stopRequested = true;
     }
   }
 
