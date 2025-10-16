@@ -7,10 +7,10 @@ import '../models/project.dart';
 import '../router/app_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class HomeScreen extends StatefulWidget  {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-   @override
+  @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
@@ -61,97 +61,101 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1433),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned(
-              left: -1,
-              top: -1,
-              width: 1,
-              height: 1,
-              child: InAppWebView(
-                initialUrlRequest: URLRequest(
-                  url: WebUri("http://localhost:8080/web_build/index.html"),
+      body: Stack(
+        children: [
+          // background outside SafeArea
+          Positioned.fill(
+            child: Image.asset('assets/splash/bg.png', fit: BoxFit.cover),
+          ),
+          SafeArea(
+            child: Stack(
+              children: [
+                Positioned(
+                  left: -1,
+                  top: -1,
+                  width: 1,
+                  height: 1,
+                  child: InAppWebView(
+                    initialUrlRequest: URLRequest(
+                      url: WebUri("http://localhost:8080/web_build/index.html"),
+                    ),
+                    onWebViewCreated: (controller) {
+                      _hiddenWebViewController = controller;
+                    },
+                    onLoadStop: (controller, url) {
+                      _fetchProjectList();
+                    },
+                  ),
                 ),
-                onWebViewCreated: (controller) {
-                  _hiddenWebViewController = controller;
-                },
-                onLoadStop: (controller, url) {
-                  _fetchProjectList();
-                },
-              ),
-            ),
-              
-            LayoutBuilder(
-              builder: (context, c) {
-                final w = c.maxWidth;
-                final h = c.maxHeight;
+                LayoutBuilder(
+                  builder: (context, c) {
+                    final w = c.maxWidth;
+                    final h = c.maxHeight;
 
-                // Skala responsif (selaras dengan splash)
-                final frameInsetScale = 1.05; // utk border HUD
-                final topNavW = math.min(w * 0.5, 520.0);
-                final topNavH = math.min(h * 0.15, 72.0);
+                    // Skala responsif (selaras dengan splash)
+                    final topNavW = math.min(w * 0.5, 520.0);
+                    final topNavH = math.min(h * 0.15, 72.0);
 
-                final panelW = math.min(w * 0.78, 960.0);
-                final panelH = math.min(h * 0.56, 380.0);
+                    final panelW = math.min(w * 0.78, 960.0);
+                    final panelH = math.min(h * 0.56, 380.0);
 
-                final subtitleFont = math.min(w * 0.03, 20.0);
+                    final subtitleFont = math.min(w * 0.03, 20.0);
 
-                final ctaW = math.min(w * 0.22, 320.0);
-                final ctaH = math.min(h * 0.10, 64.0);
+                    final ctaW = math.min(w * 0.22, 320.0);
+                    final ctaH = math.min(h * 0.10, 64.0);
 
-                return Stack(
-                  children: [
-                    // 1) Galaxy background
-                    Positioned.fill(
-                      child: Image.asset('assets/splash/bg.png', fit: BoxFit.cover),
-                    ),
-
-                    // 2) Top segmented nav
-                    Align(
-                      alignment: const Alignment(0, -0.7),
-                      child: _TopSegmentedNav(
-                        width: topNavW,
-                        height: topNavH,
-                        onTapHome: () {},
-                        onTapWorkspace: () {
-                          Navigator.pushReplacementNamed(context, AppRoutes.webview);
-                        },
-                        onTapConnect: () {
-                          Navigator.pushNamed(context, AppRoutes.connect);
-                        },
-                      ),
-                    ),
-
-                    // 3) Panel tengah (galaxy card)
-                    Align(
-                      alignment: const Alignment(0, 0.4),
-                      child: _GalaxyPanel(
-                        width: panelW,
-                        height: panelH,
-                        subtitleFont: subtitleFont,
-                        ctaWidth: ctaW,
-                        ctaHeight: ctaH,
-                        isLoading: _isLoading,
-                        hasProjects: _projects.isNotEmpty,
-                        onMissionControlTap: () {
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.missionControl,
-                            arguments: {
-                              'projects': _projects,
-                              'controller': _hiddenWebViewController,
+                    return Stack(
+                      children: [
+                        // 2) Top segmented nav
+                        Align(
+                          alignment: const Alignment(0, -0.7),
+                          child: _TopSegmentedNav(
+                            width: topNavW,
+                            height: topNavH,
+                            onTapHome: () {},
+                            onTapWorkspace: () {
+                              Navigator.pushReplacementNamed(
+                                context,
+                                AppRoutes.webview,
+                              );
                             },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                );
-              },
+                            onTapConnect: () {
+                              Navigator.pushNamed(context, AppRoutes.connect);
+                            },
+                          ),
+                        ),
+
+                        // 3) Panel tengah (galaxy card)
+                        Align(
+                          alignment: const Alignment(0, 0.4),
+                          child: _GalaxyPanel(
+                            width: panelW,
+                            height: panelH,
+                            subtitleFont: subtitleFont,
+                            ctaWidth: ctaW,
+                            ctaHeight: ctaH,
+                            isLoading: _isLoading,
+                            hasProjects: _projects.isNotEmpty,
+                            onMissionControlTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                AppRoutes.missionControl,
+                                arguments: {
+                                  'projects': _projects,
+                                  'controller': _hiddenWebViewController,
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -483,10 +487,10 @@ class _GalaxyPanel extends StatelessWidget {
                   onTap: (isLoading || !hasProjects)
                       ? null
                       : () => Navigator.pushReplacementNamed(
-                            context,
-                            AppRoutes.webview,
-                            arguments: {'action': 'load_last'},
-                          ),
+                          context,
+                          AppRoutes.webview,
+                          arguments: {'action': 'load_last'},
+                        ),
                 ),
                 _CTAButton(
                   width: ctaWidth,
@@ -541,7 +545,7 @@ class _CTAButton extends StatelessWidget {
       letterSpacing: 0.2,
       color: const Color(0xFF11203D),
     );
-    
+
     final bool isEnabled = onTap != null;
 
     return Opacity(
@@ -583,7 +587,7 @@ class _CTAButton extends StatelessWidget {
             ],
           ),
         ),
-      )
+      ),
     );
   }
 }

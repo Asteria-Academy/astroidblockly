@@ -17,6 +17,7 @@ declare global {
     deleteProject: (projectId: string) => void;
     renameProject: (projectId: string, newName: string) => void;
     setSequencerState: (state: 'running' | 'idle') => void;
+    updateSequencerState: (state: 'running' | 'idle') => void;
     generateCodeForExecution: () => string;
   }
 }
@@ -144,19 +145,24 @@ function initializeWorkspace() {
 
   let data = getProjectsData();
 
+  // Local flag that mirrors the authoritative sequencer state from Flutter.
+  let sequencerRunning = false;
+
   window.setSequencerState = (state: 'running' | 'idle') => {
     if (state === 'running') {
       playButton.innerHTML = stopButtonSvg;
+      sequencerRunning = true;
     } else {
       playButton.innerHTML = playButtonSvg;
+      sequencerRunning = false;
     }
   };
 
-  playButton.addEventListener('click', () => {
-    if (window.astroidAppChannel) {
-      window.astroidAppChannel('{"event":"play_stop_toggled"}');
-    }
-  });
+  // Receiver used by Flutter to push sequencer state changes into the WebView.
+  window.updateSequencerState = (state: 'running' | 'idle') => {
+    // Prefer calling the existing setter so we keep a single place that updates UI.
+    window.setSequencerState(state);
+  };
 
   if (action === 'load_project' && projectId) {
     const projectToLoad = data.projects.find((p: Project) => p.id === projectId);
@@ -211,7 +217,19 @@ function initializeWorkspace() {
     }, 1000);
   });
 
-  playButton.addEventListener('click', handleRunCode);
+  // When the play button is clicked we SHOULD NOT update the UI optimistically.
+  // Instead, send a message to Flutter and let Flutter call
+  // `window.updateSequencerState` to reflect the authoritative state.
+  playButton.addEventListener('click', () => {
+    if (sequencerRunning) {
+      if (window.astroidAppChannel) {
+        window.astroidAppChannel('{"event":"stop_code"}');
+      }
+    } else {
+      // Trigger code generation and send commands to Flutter.
+      handleRunCode();
+    }
+  });
 
   btStatusButton.addEventListener('click', () => {
     if (window.astroidAppChannel) {

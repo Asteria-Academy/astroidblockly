@@ -7,11 +7,15 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "repeat %1 times",
     "args0": [
       {
-        "type": "field_number",
+        "type": "input_value",
         "name": "TIMES",
-        "value": 10,
-        "min": 0,
-        "precision": 1
+        "check": "Number",
+        "shadow": {
+          "type": "math_number",
+          "fields": {
+            "NUM": 10
+          }
+        }
       }
     ],
     "message1": "do %1",
@@ -23,8 +27,25 @@ Blockly.defineBlocksWithJsonArray([
     ],
     "previousStatement": null,
     "nextStatement": null,
-    "style": "logic_blocks",
+    "style": "control_blocks",
     "tooltip": "Repeat the enclosed blocks a number of times."
+  },
+  {
+    "type": "controls_wait",
+    "message0": "wait %1 seconds",
+    "args0": [
+      {
+        "type": "field_number",
+        "name": "DURATION",
+        "value": 1,
+        "min": 0,
+        "precision": 0.1
+      }
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "style": "control_blocks",
+    "tooltip": "Waits for a specified amount of time before continuing."
   }
 ]);
 
@@ -46,15 +67,30 @@ javascriptGenerator.forBlock['controls_repeat_ext'] = function(block, generator)
   return code;
 };
 
+javascriptGenerator.forBlock['controls_wait'] = function(block, _generator) {
+  const durationInSeconds = Number(block.getFieldValue('DURATION'));
+  const durationInMs = durationInSeconds * 1000;
+  
+  const waitCmd = JSON.stringify({
+    command: 'WAIT',
+    params: { duration_ms: durationInMs }
+  });
+
+  return `${waitCmd};`;
+};
+
 export const controlCategory = {
   kind: 'category',
   name: 'Control',
-  categorystyle: 'logic_category',
+  categorystyle: 'control_category',
   contents: [
     {
       kind: 'block',
       type: 'controls_repeat_ext'
     },
-    // We will add if/else here later
+    {
+      kind: 'block',
+      type: 'controls_wait'
+    },
   ],
 };

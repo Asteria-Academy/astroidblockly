@@ -36,8 +36,14 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
         title: Text("Delete Project?"),
         content: Text("This action cannot be undone."),
         actions: [
-          TextButton(child: Text("Cancel"), onPressed: () => Navigator.pop(context, false)),
-          TextButton(child: Text("Delete"), onPressed: () => Navigator.pop(context, true)),
+          TextButton(
+            child: Text("Cancel"),
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          TextButton(
+            child: Text("Delete"),
+            onPressed: () => Navigator.pop(context, true),
+          ),
         ],
       ),
     );
@@ -54,7 +60,9 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
   }
 
   Future<void> _handleRename(String projectId, String currentName) async {
-    final TextEditingController nameController = TextEditingController(text: currentName);
+    final TextEditingController nameController = TextEditingController(
+      text: currentName,
+    );
     final String? newName = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -65,7 +73,10 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
           decoration: InputDecoration(hintText: "Enter new name"),
         ),
         actions: [
-          TextButton(child: Text("Cancel"), onPressed: () => Navigator.pop(context)),
+          TextButton(
+            child: Text("Cancel"),
+            onPressed: () => Navigator.pop(context),
+          ),
           TextButton(
             child: Text("Save"),
             onPressed: () {
@@ -87,10 +98,13 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
         final index = _currentProjects.indexWhere((p) => p.id == projectId);
         if (index != -1) {
           _currentProjects[index] = Project(
-              id: projectId,
-              name: newName,
-              lastModified: DateTime.now());
-          _currentProjects.sort((a, b) => b.lastModified.compareTo(a.lastModified));
+            id: projectId,
+            name: newName,
+            lastModified: DateTime.now(),
+          );
+          _currentProjects.sort(
+            (a, b) => b.lastModified.compareTo(a.lastModified),
+          );
         }
       });
     }
@@ -105,53 +119,71 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: _currentProjects.isEmpty
-          ? Center(
-              child: Text(
-                "No adventures created yet.\nGo back and Create Adventure!",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.white70),
+      body: SafeArea(
+        child: _currentProjects.isEmpty
+            ? Center(
+                child: Text(
+                  "No adventures created yet.\nGo back and Create Adventure!",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.white70),
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.all(12.0),
+                itemCount: _currentProjects.length,
+                itemBuilder: (context, index) {
+                  final project = _currentProjects[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 6.0),
+                    color: const Color(0xFF1A244A),
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.auto_awesome_outlined,
+                        color: const Color(0xFFA4F2FF),
+                      ),
+                      title: Text(
+                        project.name,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(
+                        "Last modified: ${DateFormat.yMMMd().add_jm().format(project.lastModified)}",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      onTap: () => Navigator.pushReplacementNamed(
+                        context,
+                        AppRoutes.webview,
+                        arguments: {'action': 'load_project', 'id': project.id},
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              Icons.drive_file_rename_outline,
+                              color: Colors.white70,
+                            ),
+                            tooltip: "Rename",
+                            onPressed: () =>
+                                _handleRename(project.id, project.name),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                            ),
+                            tooltip: "Delete",
+                            onPressed: () => _handleDelete(project.id),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(12.0),
-              itemCount: _currentProjects.length,
-              itemBuilder: (context, index) {
-                final project = _currentProjects[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 6.0),
-                  color: const Color(0xFF1A244A),
-                  child: ListTile(
-                    leading: Icon(Icons.auto_awesome_outlined, color: const Color(0xFFA4F2FF)),
-                    title: Text(project.name, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    subtitle: Text(
-                      "Last modified: ${DateFormat.yMMMd().add_jm().format(project.lastModified)}",
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                    onTap: () => Navigator.pushReplacementNamed(
-                      context,
-                      AppRoutes.webview,
-                      arguments: {'action': 'load_project', 'id': project.id},
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.drive_file_rename_outline, color: Colors.white70),
-                          tooltip: "Rename",
-                          onPressed: () => _handleRename(project.id, project.name),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete_outline, color: Colors.redAccent),
-                          tooltip: "Delete",
-                          onPressed: () => _handleDelete(project.id),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+      ),
     );
   }
 }
