@@ -155,7 +155,7 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
                       onTap: () => Navigator.pushReplacementNamed(
                         context,
                         AppRoutes.webview,
-                        arguments: {'action': 'load_project', 'id': project.id},
+                        arguments: {'action': 'open', 'id': project.id},
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,

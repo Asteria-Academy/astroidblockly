@@ -9,9 +9,18 @@ export class SimulatorSequencer {
     private simulator: Simulator;
     private isRunning: boolean = false;
     private stopRequested: boolean = false;
+    private virtualPosition: THREE.Vector2 = new THREE.Vector2(0, 0);
 
     constructor(simulator: Simulator) {
         this.simulator = simulator;
+    }
+
+    public resetWorldState(): void {
+        this.virtualPosition.set(0, 0);
+        if (this.simulator.robotModel) {
+            this.simulator.robotModel.rotation.set(0, 0, 0);
+        }
+        this.updateGroundTexture();
     }
 
     public async runCommandSequence(commands: any[]): Promise<void> {
@@ -52,6 +61,16 @@ export class SimulatorSequencer {
         this.simulator.stopWheelAnimation('B');
     }
 
+    private updateGroundTexture(): void {
+        if (this.simulator.groundMaterial) {
+            const textureScaleFactor = 8 / 20;
+            const textureOffset = this.virtualPosition.clone().multiplyScalar(textureScaleFactor);
+            this.simulator.groundMaterial.map?.offset.set(textureOffset.x, -textureOffset.y);
+            this.simulator.groundMaterial.normalMap?.offset.set(textureOffset.x, -textureOffset.y);
+            this.simulator.groundMaterial.roughnessMap?.offset.set(textureOffset.x, -textureOffset.y);
+        }
+    }
+
     private async executeBlock(commands: any[], index: number): Promise<number> {
         let i = index;
         while (i < commands.length) {
@@ -79,20 +98,15 @@ export class SimulatorSequencer {
                     while (Date.now() - startTime < duration_ms) {
                         if (this.stopRequested) break;
                         
-                        if (this.simulator.groundMaterial && this.simulator.robotModel) {
-                            const robotAngle = this.simulator.robotModel.rotation.y;
-                            const baseOffset = new THREE.Vector2(0, -1); 
-
-                            const rotatedOffset = baseOffset.rotateAround(new THREE.Vector2(0,0), robotAngle);
+                        if (this.simulator.robotModel) {
+                            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.simulator.robotModel.quaternion);
+                            
                             const distance = moveDirection * moveSpeed * (16 / 1000);
-                            const textureScaleFactor = 8 / 20;
-                            const offsetDelta = rotatedOffset.multiplyScalar(distance * textureScaleFactor);
-
-                            this.simulator.groundMaterial.map?.offset.add(offsetDelta);
-                            this.simulator.groundMaterial.normalMap?.offset.add(offsetDelta);
-                            this.simulator.groundMaterial.roughnessMap?.offset.add(offsetDelta);
+                            const moveDelta = new THREE.Vector2(forward.x, forward.z).multiplyScalar(distance);
+                            
+                            this.virtualPosition.add(moveDelta);                            
+                            this.updateGroundTexture();
                         }
-
                         await sleep(16);
                     }
                     this.stopAllMovement();
@@ -109,11 +123,22 @@ export class SimulatorSequencer {
                     this.simulator.playWheelAnimation('R', direction === 'left' ? 'Forward' : 'Backward');
 
                     const startTime = Date.now();
+                    let lastTime = startTime;
                     while (Date.now() - startTime < duration_ms) {
                         if (this.stopRequested) break;
-                        this.simulator.robotModel?.rotateY(turnDirection * turnSpeed * (16 / 1000));
+
+                        const currentTime = Date.now();
+                        const deltaTime = (currentTime - lastTime) / 1000.0;
+                        lastTime = currentTime;
+
+                        if (this.simulator.robotModel) {
+                            const angleDelta = turnDirection * turnSpeed * deltaTime;
+                            this.simulator.robotModel.rotateY(angleDelta);
+                            this.virtualPosition.rotateAround(new THREE.Vector2(0,0), -angleDelta);
+                        }
                         await sleep(16);
                     }
+                    this.updateGroundTexture();
                     this.stopAllMovement();
                     break;
                 }

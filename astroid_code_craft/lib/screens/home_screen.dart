@@ -117,6 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Navigator.pushReplacementNamed(
                                 context,
                                 AppRoutes.webview,
+                                arguments: {'action': 'load_last'},
                               );
                             },
                             onTapConnect: () {

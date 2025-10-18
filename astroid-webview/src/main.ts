@@ -164,10 +164,8 @@ function initializeWorkspace() {
   const stopButtonSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"></path></svg>`;
   const playButtonSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>`;
 
-  let data = getProjectsData();
-
   let sequencerRunning = false;
-
+  
   window.setSequencerState = (state: 'running' | 'idle') => {
     if (state === 'running') {
       playButton.innerHTML = stopButtonSvg;
@@ -177,35 +175,51 @@ function initializeWorkspace() {
       sequencerRunning = false;
     }
   };
-
+  
   window.updateSequencerState = (state: 'running' | 'idle') => {
     window.setSequencerState(state);
   };
 
-  if (action === 'load_project' && projectId) {
+  let data = getProjectsData();
+
+  let projectLoaded = false;
+  
+  if (action === 'open' && projectId) {
     const projectToLoad = data.projects.find((p: Project) => p.id === projectId);
     if (projectToLoad) {
-      console.log(`Loading project: ${projectToLoad.name}`);
+      console.log(`Opening specific project: ${projectToLoad.name}`);
       Blockly.serialization.workspaces.load(projectToLoad.workspace_json, primaryWorkspace);
       currentProjectId = projectId;
       data.last_opened_id = projectId;
+      projectLoaded = true;
     } else {
-      console.error(`Project with ID ${projectId} not found. Starting new.`);
-      createNewProject(data);
+      console.error(`Project with ID ${projectId} not found. Defaulting to last session.`);
     }
-  } else if (action === 'load_last') {
+  } else if (action === 'new_project') {
+    console.log("Action: Creating a new project.");
+    createNewProject(data);
+    projectLoaded = true;
+  }
+
+  if (!projectLoaded) {
     const lastProject = data.projects.find((p: Project) => p.id === data.last_opened_id);
     if (lastProject) {
-      console.log(`Loading last project: ${lastProject.name}`);
+      console.log(`Defaulting to last opened project: ${lastProject.name}`);
       Blockly.serialization.workspaces.load(lastProject.workspace_json, primaryWorkspace);
       currentProjectId = lastProject.id;
     } else {
-      console.log("No last project found, starting new.");
-      createNewProject(data);
+      if (data.projects.length > 0) {
+        data.projects.sort((a: Project, b: Project) => b.last_modified - a.last_modified);
+        const mostRecentProject = data.projects[0];
+        console.log(`No last opened project found. Loading most recent: ${mostRecentProject.name}`);
+        Blockly.serialization.workspaces.load(mostRecentProject.workspace_json, primaryWorkspace);
+        currentProjectId = mostRecentProject.id;
+        data.last_opened_id = currentProjectId;
+      } else {
+        console.log("No projects found. Creating a new one.");
+        createNewProject(data);
+      }
     }
-  } else {
-    console.log("Creating a new project.");
-    createNewProject(data);
   }
 
   saveProjectsData(data);
