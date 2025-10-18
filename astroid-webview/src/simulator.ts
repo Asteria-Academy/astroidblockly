@@ -28,13 +28,13 @@ export class Simulator {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.35;
+    this.renderer.toneMappingExposure = 0.7;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(this.renderer.domElement);
 
     // --- Skybox and Environment Lighting ---
     const hdrLoader = new HDRLoader();
-    hdrLoader.load('/qwantani_moon_noon_puresky_1k.hdr', (texture) => {
+    hdrLoader.load('/Cyberpunk.hdr', (texture) => {
       texture.mapping = THREE.EquirectangularReflectionMapping;
       this.scene.background = texture;
       this.scene.environment = texture;
@@ -61,9 +61,9 @@ export class Simulator {
 
     // --- Ground ---
     const textureLoader = new THREE.TextureLoader();
-    const colorTexture = textureLoader.load('/moon_01_diff_2k.jpg');
-    const normalTexture = textureLoader.load('/moon_01_nor_gl_2k.jpg');
-    const roughnessTexture = textureLoader.load('/moon_01_rough_2k.jpg');
+    const colorTexture = textureLoader.load('/rubber_tiles_diff_2k.jpg');
+    const normalTexture = textureLoader.load('/rubber_tiles_nor_gl_2k.jpg');
+    const roughnessTexture = textureLoader.load('/rubber_tiles_rough_2k.jpg');
     
     for (const texture of [colorTexture, normalTexture, roughnessTexture]) {
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -124,7 +124,7 @@ export class Simulator {
   }
 
   public playWheelAnimation(wheel: 'L' | 'R' | 'B', direction: 'Forward' | 'Backward') {
-      const animName = `Dash-Wheel${wheel}.${direction}`;
+      const animName = `Wheel_${wheel}_${direction}`;
       const action = this.animations.get(animName);
       if (action) {
           action.reset().play();
@@ -134,8 +134,8 @@ export class Simulator {
   }
   
   public stopWheelAnimation(wheel: 'L' | 'R' | 'B') {
-      const forwardAction = this.animations.get(`Dash-Wheel${wheel}.Forward`);
-      const backwardAction = this.animations.get(`Dash-Wheel${wheel}.Backward`);
+      const forwardAction = this.animations.get(`Wheel_${wheel}_Forward`);
+      const backwardAction = this.animations.get(`Wheel_${wheel}_Backward`);
       forwardAction?.stop();
       backwardAction?.stop();
   }
