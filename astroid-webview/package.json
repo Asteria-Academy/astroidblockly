@@ -10,6 +10,7 @@
     "postbuild": "rimraf ../astroid_code_craft/assets/web_build && cpr dist ../astroid_code_craft/assets/web_build --overwrite"
   },
   "devDependencies": {
+    "@types/three": "^0.180.0",
     "cpr": "^3.0.1",
     "rimraf": "^6.0.1",
     "typescript": "~5.9.3",
@@ -21,6 +22,7 @@
     "@blockly/field-colour-hsv-sliders": "^6.0.5",
     "@blockly/field-slider": "^8.0.3",
     "@blockly/theme-dark": "^8.0.1",
-    "blockly": "^12.3.1"
+    "blockly": "^12.3.1",
+    "three": "^0.180.0"
   }
 }

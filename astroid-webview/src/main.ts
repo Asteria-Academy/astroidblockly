@@ -6,8 +6,10 @@ import { ContinuousToolbox, ContinuousFlyout, registerContinuousToolbox } from '
 
 import { getAstroidToolbox } from './toolbox';
 import { getAstroidTheme } from './visual/theme';
-import { runCommands } from './command_runner';
+import { runCommandsOnRobot } from './command_runner'; 
 import { initializeAstroidEditor } from './core';
+import { Simulator } from './simulator';
+import { SimulatorSequencer } from './simulator_sequencer';
 
 declare global {
   interface Window {
@@ -112,12 +114,30 @@ function saveProjectsData(data: any) {
       return JSON.stringify(commandArray);
     }
   }
-  return '[]'; // Return empty JSON array
+  return '[]';
 };
 
 function initializeWorkspace() {
   if (!blocklyDiv || !playButton || !btStatusButton) {
     throw new Error('Required DOM elements not found!');
+  }
+
+  const simulatorContainer = document.getElementById('simulator-container');
+  const fullscreenButton = document.getElementById('fullscreen-button');
+  const fsEnterIcon = fullscreenButton?.querySelector('.icon-fullscreen-enter') as SVGElement;
+  const fsExitIcon = fullscreenButton?.querySelector('.icon-fullscreen-exit') as SVGElement;
+  const modeCheckbox = document.getElementById('mode-checkbox') as HTMLInputElement;
+  const simLabel = document.getElementById('mode-label-sim');
+  const runLabel = document.getElementById('mode-label-run');
+
+  let simulator: Simulator | null = null;
+  let sequencer: SimulatorSequencer | null = null;
+  let isSimulateMode = true;
+
+  if (simulatorContainer) {
+    simulator = new Simulator(simulatorContainer);
+    simulator.loadRobotModel('/Asteria-DashMinimal.glb');
+    sequencer = new SimulatorSequencer(simulator);
   }
 
   registerContinuousToolbox();
@@ -135,6 +155,7 @@ function initializeWorkspace() {
       flyoutsVerticalToolbox: ContinuousFlyout,
     },
   };
+
   primaryWorkspace = Blockly.inject(blocklyDiv, workspaceConfig);
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -145,7 +166,6 @@ function initializeWorkspace() {
 
   let data = getProjectsData();
 
-  // Local flag that mirrors the authoritative sequencer state from Flutter.
   let sequencerRunning = false;
 
   window.setSequencerState = (state: 'running' | 'idle') => {
@@ -158,9 +178,7 @@ function initializeWorkspace() {
     }
   };
 
-  // Receiver used by Flutter to push sequencer state changes into the WebView.
   window.updateSequencerState = (state: 'running' | 'idle') => {
-    // Prefer calling the existing setter so we keep a single place that updates UI.
     window.setSequencerState(state);
   };
 
@@ -217,17 +235,31 @@ function initializeWorkspace() {
     }, 1000);
   });
 
-  // When the play button is clicked we SHOULD NOT update the UI optimistically.
-  // Instead, send a message to Flutter and let Flutter call
-  // `window.updateSequencerState` to reflect the authoritative state.
   playButton.addEventListener('click', () => {
     if (sequencerRunning) {
-      if (window.astroidAppChannel) {
-        window.astroidAppChannel('{"event":"stop_code"}');
+      // --- Stop Logic ---
+      if (isSimulateMode) {
+        sequencer?.stopSequence();
+        window.setSequencerState('idle'); 
+      } else {
+        if (window.astroidAppChannel) {
+          window.astroidAppChannel('{"event":"stop_code"}');
+        }
       }
     } else {
-      // Trigger code generation and send commands to Flutter.
-      handleRunCode();
+      const commandJsonString = window.generateCodeForExecution();
+
+      if (isSimulateMode) {
+        console.log("Running in Simulation mode.");
+        const commandList = JSON.parse(commandJsonString);
+        window.setSequencerState('running');
+        sequencer?.runCommandSequence(commandList).then(() => {
+          window.setSequencerState('idle');
+        });
+      } else {
+        console.log("Running on Robot via BLE.");
+        runCommandsOnRobot(commandJsonString);
+      }
     }
   });
 
@@ -238,6 +270,46 @@ function initializeWorkspace() {
       console.log("Cannot show BT status, 'astroidAppChannel' not found.");
     }
   });
+
+  const handlePopState = () => {
+    if (simulatorContainer?.classList.contains('fullscreen')) {
+      simulatorContainer.classList.remove('fullscreen');
+      if (fsEnterIcon && fsExitIcon) {
+        fsEnterIcon.style.display = 'block';
+        fsExitIcon.style.display = 'none';
+      }
+      setTimeout(() => simulator?.onWindowResize(simulatorContainer!), 300);
+    }
+  };
+
+  fullscreenButton?.addEventListener('click', (e) => {
+    e.stopPropagation(); 
+    
+    const willBeFullscreen = !simulatorContainer?.classList.contains('fullscreen');
+    simulatorContainer?.classList.toggle('fullscreen');
+    
+    if (fsEnterIcon && fsExitIcon) {
+      fsEnterIcon.style.display = willBeFullscreen ? 'none' : 'block';
+      fsExitIcon.style.display = willBeFullscreen ? 'block' : 'none';
+    }
+
+    if (willBeFullscreen) {
+      window.addEventListener('popstate', handlePopState, { once: true });
+    } else {
+      window.removeEventListener('popstate', handlePopState);
+    }
+          
+    setTimeout(() => simulator?.onWindowResize(simulatorContainer!), 300); 
+  });
+
+  const updateMode = () => {
+    isSimulateMode = modeCheckbox.checked;
+    
+    simLabel?.classList.toggle('active', isSimulateMode);
+    runLabel?.classList.toggle('active', !isSimulateMode);
+  };
+  modeCheckbox?.addEventListener('change', updateMode);
+  updateMode(); 
 }
 
 function createNewProject(data: any) {
@@ -255,11 +327,6 @@ function createNewProject(data: any) {
     saveProjectsData(data);
 
     Blockly.serialization.workspaces.load(INITIAL_WORKSPACE_JSON, primaryWorkspace);
-}
-
-function handleRunCode() {
-  const code = window.generateCodeForExecution();
-  runCommands(code);
 }
 
 initializeWorkspace();
