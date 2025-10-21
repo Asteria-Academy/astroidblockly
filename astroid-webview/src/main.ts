@@ -103,6 +103,8 @@ function saveProjectsData(data: any) {
 
 (window as any).generateCodeForExecution = (): string => {
   if (!primaryWorkspace) return '';
+  javascriptGenerator.init(primaryWorkspace);
+  
   const topBlocks = primaryWorkspace.getTopBlocks(true);
   const startBlock = topBlocks.find(block => block.type === 'program_start');
   if (startBlock) {
@@ -136,8 +138,9 @@ function initializeWorkspace() {
 
   if (simulatorContainer) {
     simulator = new Simulator(simulatorContainer);
-    simulator.loadRobotModel('/Asteria-DashMinimal.glb');
+    simulator.loadRobotModel('Asteria-DashMinimal.glb');
     sequencer = new SimulatorSequencer(simulator);
+    simulator.sequencerVirtualPosition = sequencer.virtualPosition;
   }
 
   registerContinuousToolbox();
@@ -146,6 +149,7 @@ function initializeWorkspace() {
     theme: getAstroidTheme(),
     toolbox: getAstroidToolbox(),
     renderer: "zelos",
+    toolboxPosition: 'start',
     trashcan: true,
     zoom: { controls: true, wheel: true, startScale: 0.65, maxScale: 1.25, minScale: 0.4, scaleSpeed: 1.05 },
     grid: { spacing: 20, length: 3, colour: '#444', snap: true },
@@ -292,7 +296,6 @@ function initializeWorkspace() {
         fsEnterIcon.style.display = 'block';
         fsExitIcon.style.display = 'none';
       }
-      setTimeout(() => simulator?.onWindowResize(simulatorContainer!), 300);
     }
   };
 
@@ -311,9 +314,7 @@ function initializeWorkspace() {
       window.addEventListener('popstate', handlePopState, { once: true });
     } else {
       window.removeEventListener('popstate', handlePopState);
-    }
-          
-    setTimeout(() => simulator?.onWindowResize(simulatorContainer!), 300); 
+    }          
   });
 
   const updateMode = () => {

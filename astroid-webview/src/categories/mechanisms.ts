@@ -10,7 +10,7 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "Set head position to Pitch: %1 Yaw: %2",
     "args0": [
       {
-        "type": "field_slider", "name": "PITCH", "value": 90, "min": 20, "max": 170
+        "type": "field_slider", "name": "PITCH", "value": 90, "min": 75, "max": 105
       },
       {
         "type": "field_slider", "name": "YAW", "value": 90, "min": 20, "max": 170

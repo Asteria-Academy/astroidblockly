@@ -1,7 +1,7 @@
 // src/categories/looks.ts
 
 import * as Blockly from 'blockly/core';
-import { javascriptGenerator, Order } from 'blockly/javascript';
+import { javascriptGenerator } from 'blockly/javascript';
 import { astroidV2 } from '../robotProfiles';
 
 Blockly.defineBlocksWithJsonArray([
@@ -25,9 +25,9 @@ Blockly.defineBlocksWithJsonArray([
     "message0": "Set LED number %1 to color %2",
     "args0": [
       { 
-        "type": "input_value", 
+        "type": "field_slider", 
         "name": "LED_ID", 
-        "check": "Number" 
+        "value": 1, "min": 1, "max": 12 
       },
       {
         "type": "field_colour_hsv_sliders",
@@ -38,7 +38,7 @@ Blockly.defineBlocksWithJsonArray([
     "previousStatement": null,
     "nextStatement": null,
     "style": "looks_blocks",
-    "tooltip": "Sets a single LED (0-11) to a color.",
+    "tooltip": "Sets a single LED (1-12) to a color.",
     "inputsInline": true
   },
   {
@@ -73,14 +73,16 @@ javascriptGenerator.forBlock['looks_set_all_leds'] = function(block, _generator)
   return JSON.stringify(commandObj) + ';';
 };
 
-javascriptGenerator.forBlock['looks_set_single_led'] = function(block, generator) {
-  const ledId = Math.min(11, Math.max(0, parseInt(generator.valueToCode(block, 'LED_ID', Order.ATOMIC) || '0', 10)));
+javascriptGenerator.forBlock['looks_set_single_led'] = function(block, _generator) {
+  const ledId_1_indexed = parseInt(block.getFieldValue('LED_ID') || '1', 10);
+  const ledId_0_indexed = ledId_1_indexed - 1;
+
   const color = block.getFieldValue('COLOR') || '#ffffff';
   const { r, g, b } = hexToRgb(color);
   
   const commandObj = {
     command: astroidV2.commands.setLedColor,
-    params: { led_id: ledId, r, g, b }
+    params: { led_id: ledId_0_indexed, r, g, b }
   };
   return JSON.stringify(commandObj) + ';';
 };
@@ -95,7 +97,7 @@ javascriptGenerator.forBlock['looks_display_icon'] = function(block, _generator)
 };
 
 
-// --- Toolbox Definition must be updated ---
+// --- Toolbox ---
 export const looksCategory = {
   kind: 'category',
   name: 'Looks',
@@ -108,14 +110,6 @@ export const looksCategory = {
     { 
       kind: 'block', 
       type: 'looks_set_single_led',
-      inputs: { 
-        LED_ID: { 
-          shadow: { 
-            type: 'math_number', 
-            fields: { NUM: 0 } 
-          } 
-        } 
-      }
     },
     { 
       kind: 'block', 

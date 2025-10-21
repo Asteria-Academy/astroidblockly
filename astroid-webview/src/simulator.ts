@@ -2,6 +2,13 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
+import { SOUND_MAPPING } from './sound_profile';
+
+interface VirtualObstacle {
+  mesh: THREE.Mesh;
+  virtualPosition: THREE.Vector2;
+  radius: number;
+}
 
 export class Simulator {
   private scene: THREE.Scene;
@@ -11,8 +18,19 @@ export class Simulator {
   private mixer?: THREE.AnimationMixer;
   private clock: THREE.Clock;
   private animations: Map<string, THREE.AnimationAction> = new Map();
+  private head?: THREE.Object3D;
+  private displayMesh?: THREE.Mesh;
+  private leds: THREE.Mesh[] = [];
+  private iconTextures: Map<string, THREE.Texture> = new Map();
+  private sounds: Map<number, HTMLAudioElement> = new Map();
+  private obstacles: VirtualObstacle[] = [];
+  private resizeObserver: ResizeObserver;
+  private targetHeadRotation: THREE.Euler = new THREE.Euler();
+  private readonly headLerpFactor = 0.02;
+
   public robotModel?: THREE.Group;
   public groundMaterial?: THREE.MeshStandardMaterial;
+  public sequencerVirtualPosition?: THREE.Vector2;
 
   constructor(container: HTMLElement) {
     // --- Scene ---
@@ -34,7 +52,7 @@ export class Simulator {
 
     // --- Skybox and Environment Lighting ---
     const hdrLoader = new HDRLoader();
-    hdrLoader.load('/Cyberpunk.hdr', (texture) => {
+    hdrLoader.load('Cyberpunk.hdr', (texture) => {
       texture.mapping = THREE.EquirectangularReflectionMapping;
       this.scene.background = texture;
       this.scene.environment = texture;
@@ -61,9 +79,9 @@ export class Simulator {
 
     // --- Ground ---
     const textureLoader = new THREE.TextureLoader();
-    const colorTexture = textureLoader.load('/rubber_tiles_diff_2k.jpg');
-    const normalTexture = textureLoader.load('/rubber_tiles_nor_gl_2k.jpg');
-    const roughnessTexture = textureLoader.load('/rubber_tiles_rough_2k.jpg');
+    const colorTexture = textureLoader.load('rubber_tiles_diff_2k.jpg');
+    const normalTexture = textureLoader.load('rubber_tiles_nor_gl_2k.jpg');
+    const roughnessTexture = textureLoader.load('rubber_tiles_rough_2k.jpg');
     
     for (const texture of [colorTexture, normalTexture, roughnessTexture]) {
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -80,11 +98,43 @@ export class Simulator {
     const ground = new THREE.Mesh(groundGeometry, this.groundMaterial);
     ground.rotation.x = -Math.PI / 2;
     this.scene.add(ground);
+    this._preloadAssets();
     
     // --- Event Listeners ---
     this.clock = new THREE.Clock();
-    window.addEventListener('resize', () => this.onWindowResize(container), false);
+    this.resizeObserver = new ResizeObserver(entries => {
+        for (const entry of entries) {
+            const { width, height } = entry.contentRect;
+            this.onCanvasResize(width, height);
+        }
+    });
+    this.resizeObserver.observe(container);    
     this.animate();
+  }
+
+  public dispose(): void {
+      this.resizeObserver.disconnect();
+  }
+
+  private onCanvasResize(width: number, height: number): void {
+    if (width === 0 || height === 0) return;
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(width, height);
+  }
+
+  private _preloadAssets(): void {
+    const textureLoader = new THREE.TextureLoader();
+    const iconsToLoad = ['happy', 'sad', 'confused', 'mad'];
+    iconsToLoad.forEach(name => {
+      const texture = textureLoader.load(`icons/${name}.png`);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      this.iconTextures.set(name, texture);
+    });
+
+    SOUND_MAPPING.forEach(sound => {
+      this.sounds.set(sound.id, new Audio(sound.assetPath));
+    });
   }
 
   public async loadRobotModel(url: string): Promise<void> {
@@ -105,6 +155,31 @@ export class Simulator {
       this.scene.add(this.robotModel);
       console.log('Robot model loaded successfully.');
 
+      this.robotModel.traverse((node) => {
+        if (node.name === 'Dash-Head') { 
+          this.head = node; 
+          this.targetHeadRotation.copy(this.head.rotation);
+        }
+        if (node.name === 'Dash-Display' && node instanceof THREE.Mesh) {
+          this.displayMesh = node;
+          if (node.material instanceof THREE.Material) {
+            this.displayMesh.material = node.material.clone();
+          }
+        }
+        
+        if (node.name.startsWith('Dash-LED') && node instanceof THREE.Mesh) {
+          const ledNum = parseInt(node.name.replace('Dash-LED', ''), 10);
+          if (!isNaN(ledNum)) {
+            if (node.material instanceof THREE.Material) {
+              node.material = node.material.clone();
+            }
+            this.leds[ledNum - 1] = node;
+          }
+        }
+      });
+
+      console.log(`Found Head: ${!!this.head}, Display: ${!!this.displayMesh}, LEDs: ${this.leds.length}`);
+
       this.mixer = new THREE.AnimationMixer(this.robotModel);
       gltf.animations.forEach((clip) => {
         const action = this.mixer!.clipAction(clip);
@@ -114,13 +189,6 @@ export class Simulator {
     } catch (error) {
       console.error('Error loading robot model:', error);
     }
-  }
-
-  public onWindowResize(container: HTMLElement): void {
-    if (!container) return;
-    this.camera.aspect = container.clientWidth / container.clientHeight;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(container.clientWidth, container.clientHeight);
   }
 
   public playWheelAnimation(wheel: 'L' | 'R' | 'B', direction: 'Forward' | 'Backward') {
@@ -140,22 +208,111 @@ export class Simulator {
       backwardAction?.stop();
   }
 
+  public setHeadPosition(pitch: number, yaw: number): void {
+    if (!this.head) return;
+    
+    const clampedPitch = Math.max(75, Math.min(105, pitch));
+    const clampedYaw = Math.max(20, Math.min(170, yaw));
+
+    this.targetHeadRotation.x = THREE.MathUtils.degToRad(clampedPitch - 90);
+    this.targetHeadRotation.y = THREE.MathUtils.degToRad(clampedYaw - 90);
+  }
+
+  public setLedColor(ledId: number | 'all', color: THREE.Color): void {
+    const applyColor = (ledMesh: THREE.Mesh) => {
+        if (ledMesh && ledMesh.material instanceof THREE.MeshStandardMaterial) {
+            ledMesh.material.emissive = color;
+            ledMesh.material.emissiveIntensity = 2.0;
+        }
+    };
+
+    if (ledId === 'all') {
+        this.leds.forEach(applyColor);
+    } else if (this.leds[ledId]) {
+        applyColor(this.leds[ledId]);
+    }
+  }
+
+  public displayIcon(iconName: string): void {
+    if (!this.displayMesh || !(this.displayMesh.material instanceof THREE.MeshStandardMaterial)) return;
+    
+    const material = this.displayMesh.material;
+
+    if (iconName === "clear") {
+        material.emissiveMap = null;
+        material.emissive.set(0x000000);
+    } else {
+        const texture = this.iconTextures.get(iconName);
+        if (texture) {
+            material.emissiveMap = texture;
+            material.emissive.set(0xffffff);
+            material.emissiveIntensity = 0.5;
+        } else {
+            material.emissiveMap = null;
+            material.emissive.set(0x000000);
+        }
+    }
+    material.needsUpdate = true;
+  }
+
+  public playSound(soundId: number): void {
+    const sound = this.sounds.get(soundId);
+    if (sound) {
+        sound.currentTime = 0;
+        sound.play();
+    } else {
+        console.warn(`Sound not found for ID: ${soundId}`);
+    }
+  }
+
+  public addObstacle(virtualPosition: THREE.Vector2, radius: number): void {
+    const geometry = new THREE.CylinderGeometry(radius, radius, 1, 16);
+    const material = new THREE.MeshStandardMaterial({ color: 0xff4444 });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.y = 0.5;
+    this.scene.add(mesh);
+    this.obstacles.push({ mesh, virtualPosition, radius });
+  }
+
+  public updateEnvironment(robotVirtualPosition: THREE.Vector2): void {
+    if (this.groundMaterial) {
+      const textureScaleFactor = 8 / 20;
+      const textureOffset = robotVirtualPosition.clone().multiplyScalar(textureScaleFactor);
+      this.groundMaterial.map?.offset.set(textureOffset.x, -textureOffset.y);
+      this.groundMaterial.normalMap?.offset.set(textureOffset.x, -textureOffset.y);
+      this.groundMaterial.roughnessMap?.offset.set(textureOffset.x, -textureOffset.y);
+    }
+
+    this.obstacles.forEach(obs => {
+      const relativePos = obs.virtualPosition.clone().sub(robotVirtualPosition);
+      obs.mesh.position.x = relativePos.x;
+      obs.mesh.position.z = relativePos.y;
+    });
+  }
+
+  public clearObstacles(): void {
+      this.obstacles.forEach(obs => this.scene.remove(obs.mesh));
+      this.obstacles = [];
+  }
+
   private animate = (): void => {
     requestAnimationFrame(this.animate);
-
     const deltaTime = this.clock.getDelta();
-    if (this.mixer) {
-      this.mixer.update(deltaTime);
+    this.mixer?.update(deltaTime);
+
+    if (this.sequencerVirtualPosition) {
+        this.updateEnvironment(this.sequencerVirtualPosition);
+    }
+
+    if (this.head) {
+      this.head.rotation.x = THREE.MathUtils.lerp(this.head.rotation.x, this.targetHeadRotation.x, this.headLerpFactor);
+      this.head.rotation.y = THREE.MathUtils.lerp(this.head.rotation.y, this.targetHeadRotation.y, this.headLerpFactor);
     }
 
     if (this.robotModel) {
-      const targetPosition = new THREE.Vector3();
-      this.robotModel.getWorldPosition(targetPosition);
-      targetPosition.y += 0.4;
-
+      const targetPosition = new THREE.Vector3(0, 0.4, 0);
       this.controls.target.lerp(targetPosition, 0.1);
     }
-
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }

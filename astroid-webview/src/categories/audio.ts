@@ -1,8 +1,9 @@
-// src/categories/audio.ts
-
 import * as Blockly from 'blockly/core';
 import { javascriptGenerator } from 'blockly/javascript';
 import { astroidV2 } from '../robotProfiles';
+import { SOUND_MAPPING } from '../sound_profile';
+
+const soundDropdownOptions = SOUND_MAPPING.map(sound => ([sound.name, String(sound.id)]));
 
 // --- Block Definitions ---
 Blockly.defineBlocksWithJsonArray([
@@ -13,12 +14,7 @@ Blockly.defineBlocksWithJsonArray([
       {
         "type": "field_dropdown",
         "name": "SOUND_ID",
-        "options": [
-          ["Beep", "1"],
-          ["Siren", "2"],
-          ["Success", "3"],
-          ["Error", "4"]
-        ]
+        "options": soundDropdownOptions
       }
     ],
     "previousStatement": null,

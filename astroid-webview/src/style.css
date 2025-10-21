@@ -199,3 +199,15 @@ input:checked + .slider:before {
     height: 20px;
     fill: #E0E0E0;
 }
+
+.blocklyComponentDiv {
+  /* Position the trashcan relative to the bottom-left of this container */
+  left: 0 !important;
+  bottom: 0 !important;
+  top: auto !important;
+  right: auto !important;
+}
+
+.blocklyToolboxCategoryLabel {
+	font: 500 9pt sans-serif !important;
+}
