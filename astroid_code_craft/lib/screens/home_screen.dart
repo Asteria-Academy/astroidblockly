@@ -113,11 +113,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             width: topNavW,
                             height: topNavH,
                             onTapHome: () {},
-                            onTapWorkspace: () {
-                              Navigator.pushReplacementNamed(
+                            onTapCode: () {
+                              Navigator.pushNamed(
                                 context,
-                                AppRoutes.webview,
-                                arguments: {'action': 'load_last'},
+                                AppRoutes.codeChat,
                               );
                             },
                             onTapConnect: () {
@@ -167,14 +166,14 @@ class _TopSegmentedNav extends StatelessWidget {
     required this.width,
     required this.height,
     required this.onTapHome,
-    required this.onTapWorkspace,
+    required this.onTapCode,
     required this.onTapConnect,
   });
 
   final double width;
   final double height;
   final VoidCallback onTapHome;
-  final VoidCallback onTapWorkspace;
+  final VoidCallback onTapCode;
   final VoidCallback onTapConnect;
 
   @override
@@ -224,11 +223,11 @@ class _TopSegmentedNav extends StatelessWidget {
           _NavDivider(color: dividerColor, height: segmentHeight),
           Expanded(
             child: _NavPill(
-              label: 'WORKSPACE',
+              label: 'CODE',
               width: width * 0.5,
               icon: Icons.satellite_alt_outlined,
               height: segmentHeight,
-              onTap: onTapWorkspace,
+              onTap: onTapCode,
             ),
           ),
           _NavDivider(color: dividerColor, height: segmentHeight),
