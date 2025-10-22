@@ -1,9 +1,14 @@
+import 'package:astroid_code_craft/models/chat_message.dart';
+import 'package:astroid_code_craft/screens/chat_test_screen.dart';
 import 'package:flutter/material.dart';
-// 1. Import your two service classes
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/speech_to_text_service.dart';
 import 'services/kolosal_api_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: ".env");
   runApp(MyApp());
 }
 
@@ -18,7 +23,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: TestPage(),
+      home: ConversationalChatPage(),
     );
   }
 }
@@ -110,7 +115,7 @@ class _TestPageState extends State<TestPage> {
   /// Send text to Kolosal and update the UI
   Future<void> _sendToAI(String text) async {
     try {
-      final String response = await _apiService.getChatCompletion(text);
+      final String response = await _apiService.getChatCompletion(text as List<ChatMessage>);
       setState(() {
         _aiResponse = response;
       });
@@ -189,8 +194,8 @@ class _TestPageState extends State<TestPage> {
           return FloatingActionButton(
             onPressed: _handleVoiceCommand,
             tooltip: 'Listen',
-            child: Icon(isListening ? Icons.stop : Icons.mic),
             backgroundColor: isListening ? Colors.red : Colors.blue,
+            child: Icon(isListening ? Icons.stop : Icons.mic),
           );
         },
       ),

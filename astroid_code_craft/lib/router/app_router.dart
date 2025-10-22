@@ -12,6 +12,7 @@ import '../screens/mission_control_screen.dart';
 import '../screens/connect_screen.dart';
 import '../screens/connecting_screen.dart';
 import '../models/project.dart';
+import '../screens/code_chat_screen.dart';
 
 /// Kumpulan nama route supaya konsisten & mudah diubah
 class AppRoutes {
@@ -22,6 +23,9 @@ class AppRoutes {
   static const missionControl = '/mission-control';
   static const connect = '/connect';
   static const connecting = '/connecting';
+
+  // --- ADD THE NEW ROUTE ---
+  static const codeChat = '/code-chat';
 }
 
 /// Router utama: hubungkan name → page
@@ -32,6 +36,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
 
     case AppRoutes.home:
       return _page(const HomeScreen());
+
     case AppRoutes.webview:
       final args = settings.arguments as Map<String, String>? ?? {'action': 'new_project'};
       return _page(AstroidWebViewScreen(args: args));
@@ -48,6 +53,10 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case AppRoutes.connecting:
       final device = settings.arguments as fbp.BluetoothDevice;
       return _page(ConnectingScreen(device: device));
+
+  // --- ADD THE NEW CASE ---
+    case AppRoutes.codeChat:
+      return _page(const CodeChatScreen());
 
     default:
       return _notFound(settings.name);
