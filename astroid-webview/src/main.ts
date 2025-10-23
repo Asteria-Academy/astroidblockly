@@ -6,7 +6,7 @@ import { ContinuousToolbox, ContinuousFlyout, registerContinuousToolbox } from '
 
 import { getAstroidToolbox } from './toolbox';
 import { getAstroidTheme } from './visual/theme';
-import { runCommandsOnRobot } from './command_runner'; 
+import { runCommandsOnRobot } from './command_runner';
 import { initializeAstroidEditor } from './core';
 import { Simulator } from './simulator';
 import { SimulatorSequencer } from './simulator_sequencer';
@@ -14,7 +14,7 @@ import { SimulatorSequencer } from './simulator_sequencer';
 declare global {
   interface Window {
     astroidAppChannel: (message: string) => void;
-    
+
     getProjectList: () => string;
     deleteProject: (projectId: string) => void;
     renameProject: (projectId: string, newName: string) => void;
@@ -30,14 +30,18 @@ interface Project {
   name: string;
   last_modified: number;
   workspace_json: any;
+  thumbnail_data?: string | null;
 }
 
 const INITIAL_WORKSPACE_JSON = {
-  "blocks": { "languageVersion": 0, "blocks": [
-    { "type": "program_start", "id": "start_block", "x": 200, "y": 100, "deletable": false, "movable": false,
-      "next": { "block": { "type": "motor_stop" } }
-    }
-  ]}
+  "blocks": {
+    "languageVersion": 0, "blocks": [
+      {
+        "type": "program_start", "id": "start_block", "x": 200, "y": 100, "deletable": false, "movable": false,
+        "next": { "block": { "type": "motor_stop" } }
+      }
+    ]
+  }
 };
 
 initializeAstroidEditor();
@@ -55,7 +59,7 @@ function getProjectsData() {
   if (!data) return { last_opened_id: null, projects: [] };
   try {
     return JSON.parse(data);
-  } catch(e) {
+  } catch (e) {
     return { last_opened_id: null, projects: [] };
   }
 }
@@ -64,17 +68,99 @@ function saveProjectsData(data: any) {
   localStorage.setItem('astroid_projects', JSON.stringify(data));
 }
 
-(window as any).getProjectList = function() {
+
+
+async function generateWorkspaceThumbnail(): Promise<string | null> {
+  if (!primaryWorkspace) {
+    return null;
+  }
+
+  const parentSvg = primaryWorkspace.getParentSvg();
+  if (!parentSvg) {
+    return null;
+  }
+
+  const cloneSvg = parentSvg.cloneNode(true) as SVGSVGElement;
+  cloneSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+  const background = cloneSvg.querySelector<SVGRectElement>('rect.blocklyMainBackground');
+  if (background) {
+    background.setAttribute('fill', '#0B1433');
+  }
+
+  const padding = 32;
+  const bbox = primaryWorkspace.getBlocksBoundingBox();
+
+  let exportWidth = 320;
+  let exportHeight = 240;
+  let exportLeft = -padding;
+  let exportTop = -padding;
+
+  if (bbox) {
+    const width = bbox.right - bbox.left;
+    const height = bbox.bottom - bbox.top;
+    if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+      exportWidth = Math.max(width + padding * 2, 180);
+      exportHeight = Math.max(height + padding * 2, 140);
+      exportLeft = bbox.left - padding;
+      exportTop = bbox.top - padding;
+    }
+  }
+
+  cloneSvg.setAttribute('viewBox', `${exportLeft} ${exportTop} ${exportWidth} ${exportHeight}`);
+  cloneSvg.setAttribute('width', `${exportWidth}`);
+  cloneSvg.setAttribute('height', `${exportHeight}`);
+
+  const serializer = new XMLSerializer();
+  const svgMarkup = serializer.serializeToString(cloneSvg);
+  const blob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
+  const dataUrl = URL.createObjectURL(blob);
+
+  return await new Promise<string | null>((resolve) => {
+    const image = new Image();
+
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = exportWidth;
+      canvas.height = exportHeight;
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        URL.revokeObjectURL(dataUrl);
+        resolve(null);
+        return;
+      }
+
+      ctx.fillStyle = '#0B1433';
+      ctx.fillRect(0, 0, exportWidth, exportHeight);
+      ctx.drawImage(image, 0, 0, exportWidth, exportHeight);
+
+      const pngDataUrl = canvas.toDataURL('image/png');
+      URL.revokeObjectURL(dataUrl);
+      resolve(pngDataUrl);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(dataUrl);
+      resolve(null);
+    };
+
+    image.src = dataUrl;
+  });
+}
+
+(window as any).getProjectList = function () {
   const data = getProjectsData();
   const projectList = data.projects.map((p: Project) => ({
     id: p.id,
     name: p.name,
-    last_modified: p.last_modified
+    last_modified: p.last_modified,
+    thumbnail_data: p.thumbnail_data ?? null
   }));
   return JSON.stringify(projectList);
 };
 
-(window as any).deleteProject = function(projectId: string) {
+(window as any).deleteProject = function (projectId: string) {
   let data = getProjectsData();
   data.projects = data.projects.filter((p: Project) => p.id !== projectId);
   if (data.last_opened_id === projectId) {
@@ -83,7 +169,7 @@ function saveProjectsData(data: any) {
   saveProjectsData(data);
 };
 
-(window as any).renameProject = function(projectId: string, newName: string) {
+(window as any).renameProject = function (projectId: string, newName: string) {
   if (!newName || newName.trim().length === 0) {
     console.error("New project name cannot be empty.");
     return;
@@ -105,7 +191,7 @@ function saveProjectsData(data: any) {
 (window as any).generateCodeForExecution = (): string => {
   if (!primaryWorkspace) return '';
   javascriptGenerator.init(primaryWorkspace);
-  
+
   const topBlocks = primaryWorkspace.getTopBlocks(true);
   const startBlock = topBlocks.find(block => block.type === 'program_start');
   if (startBlock) {
@@ -177,7 +263,7 @@ function initializeWorkspace() {
   const playButtonSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>`;
 
   let sequencerRunning = false;
-  
+
   window.setSequencerState = (state: 'running' | 'idle') => {
     if (state === 'running') {
       playButton.innerHTML = stopButtonSvg;
@@ -187,7 +273,7 @@ function initializeWorkspace() {
       sequencerRunning = false;
     }
   };
-  
+
   window.updateSequencerState = (state: 'running' | 'idle') => {
     window.setSequencerState(state);
   };
@@ -195,7 +281,7 @@ function initializeWorkspace() {
   let data = getProjectsData();
 
   let projectLoaded = false;
-  
+
   if (action === 'open' && projectId) {
     const projectToLoad = data.projects.find((p: Project) => p.id === projectId);
     if (projectToLoad) {
@@ -245,7 +331,7 @@ function initializeWorkspace() {
       clearTimeout(saveTimeout);
     }
 
-    saveTimeout = setTimeout(() => {
+    saveTimeout = window.setTimeout(async () => {
       console.log("Debounced save triggered.");
       const workspaceJson = Blockly.serialization.workspaces.save(primaryWorkspace);
       let currentData = getProjectsData();
@@ -254,6 +340,14 @@ function initializeWorkspace() {
       if (projectIndex !== -1) {
         currentData.projects[projectIndex].workspace_json = workspaceJson;
         currentData.projects[projectIndex].last_modified = Date.now();
+        try {
+          const thumbnailData = await generateWorkspaceThumbnail();
+          if (thumbnailData) {
+            currentData.projects[projectIndex].thumbnail_data = thumbnailData;
+          }
+        } catch (error) {
+          console.warn('Failed to capture workspace thumbnail', error);
+        }
         currentData.last_opened_id = currentProjectId;
         saveProjectsData(currentData);
         console.log("Project auto-saved.");
@@ -266,7 +360,7 @@ function initializeWorkspace() {
       // --- Stop Logic ---
       if (isSimulateMode) {
         sequencer?.stopSequence();
-        window.setSequencerState('idle'); 
+        window.setSequencerState('idle');
       } else {
         if (window.astroidAppChannel) {
           window.astroidAppChannel('{"event":"stop_code"}');
@@ -308,11 +402,11 @@ function initializeWorkspace() {
   };
 
   fullscreenButton?.addEventListener('click', (e) => {
-    e.stopPropagation(); 
-    
+    e.stopPropagation();
+
     const willBeFullscreen = !simulatorContainer?.classList.contains('fullscreen');
     simulatorContainer?.classList.toggle('fullscreen');
-    
+
     if (fsEnterIcon && fsExitIcon) {
       fsEnterIcon.style.display = willBeFullscreen ? 'none' : 'block';
       fsExitIcon.style.display = willBeFullscreen ? 'block' : 'none';
@@ -322,34 +416,48 @@ function initializeWorkspace() {
       window.addEventListener('popstate', handlePopState, { once: true });
     } else {
       window.removeEventListener('popstate', handlePopState);
-    }          
+    }
   });
 
   const updateMode = () => {
     isSimulateMode = modeCheckbox.checked;
-    
+
     simLabel?.classList.toggle('active', isSimulateMode);
     runLabel?.classList.toggle('active', !isSimulateMode);
   };
   modeCheckbox?.addEventListener('change', updateMode);
-  updateMode(); 
+  updateMode();
 }
 
 function createNewProject(data: any) {
-    const newId = `proj-${Date.now()}`;
-    const newProject = {
-        id: newId,
-        name: `New Adventure ${data.projects.length + 1}`,
-        last_modified: Date.now(),
-        workspace_json: INITIAL_WORKSPACE_JSON
-    };
-    data.projects.push(newProject);
-    currentProjectId = newId;
-    data.last_opened_id = newId;
+  const newId = `proj-${Date.now()}`;
+  const newProject = {
+    id: newId,
+    name: `New Adventure ${data.projects.length + 1}`,
+    last_modified: Date.now(),
+    workspace_json: INITIAL_WORKSPACE_JSON,
+    thumbnail_data: null
+  };
+  data.projects.push(newProject);
+  currentProjectId = newId;
+  data.last_opened_id = newId;
 
-    saveProjectsData(data);
+  saveProjectsData(data);
 
-    Blockly.serialization.workspaces.load(INITIAL_WORKSPACE_JSON, primaryWorkspace);
+  Blockly.serialization.workspaces.load(INITIAL_WORKSPACE_JSON, primaryWorkspace);
+  void generateWorkspaceThumbnail().then((thumbnail) => {
+    if (!thumbnail) {
+      return;
+    }
+    const refreshedData = getProjectsData();
+    const projectIndex = refreshedData.projects.findIndex((p: Project) => p.id === newId);
+    if (projectIndex !== -1) {
+      refreshedData.projects[projectIndex].thumbnail_data = thumbnail;
+      saveProjectsData(refreshedData);
+    }
+  }).catch((error) => {
+    console.warn('Unable to capture thumbnail for new project', error);
+  });
 }
 
 initializeWorkspace();
