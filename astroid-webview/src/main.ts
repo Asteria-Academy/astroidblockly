@@ -80,73 +80,94 @@ async function generateWorkspaceThumbnail(): Promise<string | null> {
     return null;
   }
 
-  const cloneSvg = parentSvg.cloneNode(true) as SVGSVGElement;
-  cloneSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  const padding = 48;
+  const scale = primaryWorkspace.getScale();
+  const minWidth = 320;
+  const minHeight = 220;
 
-  const background = cloneSvg.querySelector<SVGRectElement>('rect.blocklyMainBackground');
-  if (background) {
-    background.setAttribute('fill', '#0B1433');
-  }
-
-  const padding = 32;
   const bbox = primaryWorkspace.getBlocksBoundingBox();
+  const hasBlocks = Boolean(bbox) && isFinite(bbox!.right - bbox!.left) && isFinite(bbox!.bottom - bbox!.top) &&
+    (bbox!.right - bbox!.left) > 0 && (bbox!.bottom - bbox!.top) > 0;
 
-  let exportWidth = 320;
-  let exportHeight = 240;
-  let exportLeft = -padding;
-  let exportTop = -padding;
+  const blockLeft = hasBlocks ? bbox!.left : 0;
+  const blockTop = hasBlocks ? bbox!.top : 0;
+  const blockWidth = hasBlocks ? (bbox!.right - bbox!.left) : 180;
+  const blockHeight = hasBlocks ? (bbox!.bottom - bbox!.top) : 120;
 
-  if (bbox) {
-    const width = bbox.right - bbox.left;
-    const height = bbox.bottom - bbox.top;
-    if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
-      exportWidth = Math.max(width + padding * 2, 180);
-      exportHeight = Math.max(height + padding * 2, 140);
-      exportLeft = bbox.left - padding;
-      exportTop = bbox.top - padding;
-    }
+  const viewWidth = blockWidth + padding * 2;
+  const viewHeight = blockHeight + padding * 2;
+
+  const exportWidth = Math.max(viewWidth * scale, minWidth);
+  const exportHeight = Math.max(viewHeight * scale, minHeight);
+
+  const xmlNs = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(xmlNs, 'svg');
+  svg.setAttribute('xmlns', xmlNs);
+  svg.setAttribute('viewBox', `0 0 ${viewWidth} ${viewHeight}`);
+  svg.setAttribute('width', `${exportWidth}`);
+  svg.setAttribute('height', `${exportHeight}`);
+  svg.setAttribute('shape-rendering', 'geometricPrecision');
+
+  const defs = parentSvg.querySelector('defs');
+  if (defs) {
+    svg.appendChild(defs.cloneNode(true));
   }
 
-  cloneSvg.setAttribute('viewBox', `${exportLeft} ${exportTop} ${exportWidth} ${exportHeight}`);
-  cloneSvg.setAttribute('width', `${exportWidth}`);
-  cloneSvg.setAttribute('height', `${exportHeight}`);
+  const background = document.createElementNS(xmlNs, 'rect');
+  background.setAttribute('x', '0');
+  background.setAttribute('y', '0');
+  background.setAttribute('width', `${viewWidth}`);
+  background.setAttribute('height', `${viewHeight}`);
+  background.setAttribute('fill', '#0B1433');
+  svg.appendChild(background);
+
+  const translateX = padding - blockLeft;
+  const translateY = padding - blockTop;
+  const exportTransform = `translate(${translateX}, ${translateY}) scale(${scale})`;
+
+  const blockCanvas = primaryWorkspace.getCanvas().cloneNode(true) as SVGGElement;
+  blockCanvas.setAttribute('transform', exportTransform);
+  svg.appendChild(blockCanvas);
+
+  const bubbleCanvas = primaryWorkspace.getBubbleCanvas().cloneNode(true) as SVGGElement;
+  bubbleCanvas.setAttribute('transform', exportTransform);
+  svg.appendChild(bubbleCanvas);
 
   const serializer = new XMLSerializer();
-  const svgMarkup = serializer.serializeToString(cloneSvg);
+  const svgMarkup = serializer.serializeToString(svg);
   const blob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
-  const dataUrl = URL.createObjectURL(blob);
+  const objectUrl = URL.createObjectURL(blob);
 
-  return await new Promise<string | null>((resolve) => {
-    const image = new Image();
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = objectUrl;
+    });
 
-    image.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = exportWidth;
-      canvas.height = exportHeight;
-      const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(exportWidth * dpr);
+    canvas.height = Math.round(exportHeight * dpr);
 
-      if (!ctx) {
-        URL.revokeObjectURL(dataUrl);
-        resolve(null);
-        return;
-      }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return null;
+    }
 
-      ctx.fillStyle = '#0B1433';
-      ctx.fillRect(0, 0, exportWidth, exportHeight);
-      ctx.drawImage(image, 0, 0, exportWidth, exportHeight);
+    ctx.scale(dpr, dpr);
+    ctx.fillStyle = '#0B1433';
+    ctx.fillRect(0, 0, exportWidth, exportHeight);
+    ctx.drawImage(image, 0, 0, exportWidth, exportHeight);
 
-      const pngDataUrl = canvas.toDataURL('image/png');
-      URL.revokeObjectURL(dataUrl);
-      resolve(pngDataUrl);
-    };
-
-    image.onerror = () => {
-      URL.revokeObjectURL(dataUrl);
-      resolve(null);
-    };
-
-    image.src = dataUrl;
-  });
+    return canvas.toDataURL('image/png');
+  } catch (error) {
+    console.warn('Thumbnail render failed', error);
+    return null;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 (window as any).getProjectList = function () {

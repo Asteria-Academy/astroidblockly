@@ -122,8 +122,9 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
       return null;
     }
     final separatorIndex = dataUrl.indexOf(',');
-    final payload =
-        separatorIndex != -1 ? dataUrl.substring(separatorIndex + 1) : dataUrl;
+    final payload = separatorIndex != -1
+        ? dataUrl.substring(separatorIndex + 1)
+        : dataUrl;
     try {
       return base64Decode(payload);
     } catch (_) {
@@ -155,8 +156,9 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
                   builder: (context, constraints) {
                     final maxWidth = constraints.maxWidth;
                     final extent = maxWidth < 520 ? maxWidth * 0.92 : 320.0;
-                    final maxCrossAxisExtent =
-                        extent.clamp(260.0, 420.0).toDouble();
+                    final maxCrossAxisExtent = extent
+                        .clamp(260.0, 420.0)
+                        .toDouble();
                     return GridView.builder(
                       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: maxCrossAxisExtent,
@@ -169,16 +171,19 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
                         final project = _currentProjects[index];
                         return _ProjectCard(
                           project: project,
-                          thumbnailBytes:
-                              _decodeThumbnail(project.thumbnailData),
-                          lastModifiedLabel:
-                              _dateFormat.format(project.lastModified),
+                          thumbnailBytes: _decodeThumbnail(
+                            project.thumbnailData,
+                          ),
+                          lastModifiedLabel: _dateFormat.format(
+                            project.lastModified,
+                          ),
                           onOpen: () => Navigator.pushReplacementNamed(
                             context,
                             AppRoutes.webview,
                             arguments: {'action': 'open', 'id': project.id},
                           ),
-                          onRename: () => _handleRename(project.id, project.name),
+                          onRename: () =>
+                              _handleRename(project.id, project.name),
                           onDelete: () => _handleDelete(project.id),
                         );
                       },
@@ -221,10 +226,7 @@ class _ProjectCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: borderRadius,
             color: const Color(0xFF121F45),
-            border: Border.all(
-              color: const Color(0xFF284072),
-              width: 1.4,
-            ),
+            border: Border.all(color: const Color(0xFF284072), width: 1.4),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x66172C5C),
@@ -291,7 +293,10 @@ class _ProjectCard extends StatelessWidget {
                           Expanded(
                             child: ElevatedButton.icon(
                               onPressed: onOpen,
-                              icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                              icon: const Icon(
+                                Icons.play_arrow_rounded,
+                                size: 18,
+                              ),
                               label: Text(
                                 'OPEN',
                                 style: GoogleFonts.titanOne(
@@ -364,20 +369,13 @@ class _ProjectPreview extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1D2A57),
-            Color(0xFF18204A),
-          ],
+          colors: [Color(0xFF1D2A57), Color(0xFF18204A)],
         ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: const [
-          Icon(
-            Icons.auto_awesome,
-            size: 44,
-            color: Color(0x44FFFFFF),
-          ),
+          Icon(Icons.auto_awesome, size: 44, color: Color(0x44FFFFFF)),
           SizedBox(height: 8),
           Text(
             'Ready for launch',
