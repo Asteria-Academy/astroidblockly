@@ -67,6 +67,19 @@ class _HomeScreenState extends State<HomeScreen> {
           Positioned.fill(
             child: Image.asset('assets/splash/bg.png', fit: BoxFit.cover),
           ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.25,
+              child: Image.asset(
+                'assets/brand/mascotnobg.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+
           SafeArea(
             child: Stack(
               children: [
@@ -114,10 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: topNavH,
                             onTapHome: () {},
                             onTapCode: () {
-                              Navigator.pushNamed(
-                                context,
-                                AppRoutes.codeChat,
-                              );
+                              Navigator.pushNamed(context, AppRoutes.codeChat);
                             },
                             onTapConnect: () {
                               Navigator.pushNamed(context, AppRoutes.connect);
@@ -127,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         // 3) Panel tengah (galaxy card)
                         Align(
-                          alignment: const Alignment(0, 0.4),
+                          alignment: const Alignment(0, 0.5),
                           child: _GalaxyPanel(
                             width: panelW,
                             height: panelH,
@@ -153,6 +163,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
               ],
+            ),
+          ),
+          Positioned(
+            left: 0,
+            bottom: -20 * 4,
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.5,
+              child: Image.asset(
+                'assets/brand/mascotnobg.png',
+                fit: BoxFit.contain,
+              ),
             ),
           ),
         ],
