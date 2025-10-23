@@ -1,6 +1,8 @@
 // lib/screens/home_screen.dart
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../models/project.dart';
@@ -20,9 +22,34 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Project> _projects = [];
   bool _isLoading = true;
 
+  late final AudioPlayer _bubblePointOnePlayer;
+  late final AudioPlayer _bubblePointTwoPlayer;
+
+  static const String _bubblePointOneAsset = 'assets/sounds/Bubble_Point_1.wav';
+  static const String _bubblePointTwoAsset = 'assets/sounds/Bubble_Point_2.wav';
+
   @override
   void initState() {
     super.initState();
+    _bubblePointOnePlayer = AudioPlayer();
+    _bubblePointTwoPlayer = AudioPlayer();
+    unawaited(_bubblePointOnePlayer.setPlayerMode(PlayerMode.lowLatency));
+    unawaited(_bubblePointTwoPlayer.setPlayerMode(PlayerMode.lowLatency));
+  }
+
+  Future<void> _playBubblePointOne() =>
+      _playSound(_bubblePointOnePlayer, _bubblePointOneAsset);
+
+  Future<void> _playBubblePointTwo() =>
+      _playSound(_bubblePointTwoPlayer, _bubblePointTwoAsset);
+
+  Future<void> _playSound(AudioPlayer player, String assetPath) async {
+    try {
+      await player.stop();
+      await player.play(AssetSource(assetPath));
+    } catch (e) {
+      debugPrint('Failed to play sound effect ($assetPath): $e');
+    }
   }
 
   Future<void> _fetchProjectList() async {
@@ -55,6 +82,13 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_bubblePointOnePlayer.dispose());
+    unawaited(_bubblePointTwoPlayer.dispose());
+    super.dispose();
   }
 
   @override
@@ -116,6 +150,55 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     final ctaW = math.min(w * 0.22, 320.0);
                     final ctaH = math.min(h * 0.10, 64.0);
+                    final canContinueJourney =
+                        !_isLoading && _projects.isNotEmpty;
+
+                    void onHomeTap() {
+                      _playBubblePointOne();
+                    }
+
+                    void onCodeTap() {
+                      _playBubblePointOne();
+                      Navigator.pushNamed(context, AppRoutes.codeChat);
+                    }
+
+                    void onConnectTap() {
+                      _playBubblePointOne();
+                      Navigator.pushNamed(context, AppRoutes.connect);
+                    }
+
+                    void onCreateAdventureTap() {
+                      _playBubblePointTwo();
+                      Navigator.pushReplacementNamed(
+                        context,
+                        AppRoutes.webview,
+                        arguments: {'action': 'new_project'},
+                      );
+                    }
+
+                    final VoidCallback? onContinueJourneyTap =
+                        canContinueJourney
+                        ? () {
+                            _playBubblePointTwo();
+                            Navigator.pushReplacementNamed(
+                              context,
+                              AppRoutes.webview,
+                              arguments: {'action': 'load_last'},
+                            );
+                          }
+                        : null;
+
+                    void onMissionControlTap() {
+                      _playBubblePointTwo();
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.missionControl,
+                        arguments: {
+                          'projects': _projects,
+                          'controller': _hiddenWebViewController,
+                        },
+                      );
+                    }
 
                     return Stack(
                       children: [
@@ -125,13 +208,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: _TopSegmentedNav(
                             width: topNavW,
                             height: topNavH,
-                            onTapHome: () {},
-                            onTapCode: () {
-                              Navigator.pushNamed(context, AppRoutes.codeChat);
-                            },
-                            onTapConnect: () {
-                              Navigator.pushNamed(context, AppRoutes.connect);
-                            },
+                            onTapHome: onHomeTap,
+                            onTapCode: onCodeTap,
+                            onTapConnect: onConnectTap,
                           ),
                         ),
 
@@ -144,18 +223,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             subtitleFont: subtitleFont,
                             ctaWidth: ctaW,
                             ctaHeight: ctaH,
-                            isLoading: _isLoading,
-                            hasProjects: _projects.isNotEmpty,
-                            onMissionControlTap: () {
-                              Navigator.pushNamed(
-                                context,
-                                AppRoutes.missionControl,
-                                arguments: {
-                                  'projects': _projects,
-                                  'controller': _hiddenWebViewController,
-                                },
-                              );
-                            },
+                            onCreateAdventureTap: onCreateAdventureTap,
+                            onContinueJourneyTap: onContinueJourneyTap,
+                            onMissionControlTap: onMissionControlTap,
                           ),
                         ),
                       ],
@@ -374,8 +444,8 @@ class _GalaxyPanel extends StatelessWidget {
     required this.subtitleFont,
     required this.ctaWidth,
     required this.ctaHeight,
-    required this.isLoading,
-    required this.hasProjects,
+    required this.onCreateAdventureTap,
+    required this.onContinueJourneyTap,
     required this.onMissionControlTap,
   });
 
@@ -384,8 +454,8 @@ class _GalaxyPanel extends StatelessWidget {
   final double subtitleFont;
   final double ctaWidth;
   final double ctaHeight;
-  final bool isLoading;
-  final bool hasProjects;
+  final VoidCallback onCreateAdventureTap;
+  final VoidCallback? onContinueJourneyTap;
   final VoidCallback onMissionControlTap;
 
   @override
@@ -488,11 +558,7 @@ class _GalaxyPanel extends StatelessWidget {
                   ),
                   borderColor: const Color(0xFFFDF5FF),
                   shadowColor: const Color(0xFFE3CFFF),
-                  onTap: () => Navigator.pushReplacementNamed(
-                    context,
-                    AppRoutes.webview,
-                    arguments: {'action': 'new_project'},
-                  ),
+                  onTap: onCreateAdventureTap,
                 ),
                 _CTAButton(
                   width: ctaWidth,
@@ -505,13 +571,7 @@ class _GalaxyPanel extends StatelessWidget {
                   ),
                   borderColor: const Color(0xFFE4FFFF),
                   shadowColor: const Color(0xFF7EE5F6),
-                  onTap: (isLoading || !hasProjects)
-                      ? null
-                      : () => Navigator.pushReplacementNamed(
-                          context,
-                          AppRoutes.webview,
-                          arguments: {'action': 'load_last'},
-                        ),
+                  onTap: onContinueJourneyTap,
                 ),
                 _CTAButton(
                   width: ctaWidth,
