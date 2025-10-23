@@ -6,7 +6,10 @@ import 'package:google_fonts/google_fonts.dart';
 // Import all our services, models, and prompts
 import '../services/kolosal_api_service.dart';
 import '../services/speech_to_text_service.dart';
+import '../services/bluetooth_service.dart';
+import '../services/agentic_ai_service.dart';
 import '../models/chat_message.dart';
+import '../models/agentic_response.dart';
 import '../config/app_prompts.dart';
 
 class CodeChatScreen extends StatelessWidget {
@@ -89,6 +92,7 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
   // Services
   final KolosalApiService _apiService = KolosalApiService();
   final SpeechToTextService _sttService = SpeechToTextService();
+  late final AgenticAIService _agenticService;
 
   // State Controllers
   final TextEditingController _textController = TextEditingController();
@@ -110,6 +114,13 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
   @override
   void initState() {
     super.initState();
+    
+    // Initialize agentic service
+    _agenticService = AgenticAIService(
+      apiService: _apiService,
+      bluetoothService: BluetoothService.instance,
+    );
+    
     _sttService.initialize().then((isReady) {
       if (!mounted) return;
       setState(() {
@@ -163,29 +174,33 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
     _scrollToBottom();
 
     final Future<void> minDelay = Future.delayed(Duration(milliseconds: 1500));
-    final Future<String?> apiCall = () async {
+    
+    // Use agentic service instead of direct API call
+    final Future<AgenticResponse> agenticCall = () async {
       try {
         final context = List<ChatMessage>.from(_chatHistory);
-        return await _apiService.getChatCompletion(context);
+        return await _agenticService.processMessage(
+          _chatHistory.last.text,
+          context,
+        );
       } catch (e) {
-        print("Error getting AI response: $e");
-        return null;
+        debugPrint("Error getting agentic AI response: $e");
+        return AgenticResponse(
+          message: "Sorry, I can't catch what you mean. Can you try again?",
+        );
       }
     }();
 
-    final List<dynamic> results = await Future.wait([apiCall, minDelay]);
-    final String? aiResponse = results[0] as String?;
+    final List<dynamic> results = await Future.wait([agenticCall, minDelay]);
+    final AgenticResponse agenticResponse = results[0] as AgenticResponse;
 
     if (!mounted) return;
     setState(() {
-      if (aiResponse != null) {
-        _chatHistory.add(ChatMessage(text: aiResponse, role: ChatRole.ai));
-      } else {
-        _chatHistory.add(ChatMessage(
-          text: "Sorry, I can't catch what you mean. Can you try again?",
-          role: ChatRole.ai,
-        ));
-      }
+      // Add the AI response to chat history
+      _chatHistory.add(ChatMessage(
+        text: agenticResponse.message,
+        role: ChatRole.ai,
+      ));
       _isProcessing = false;
     });
     _scrollToBottom();
@@ -305,7 +320,7 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
 
 class _ChatBubble extends StatelessWidget {
   final ChatMessage message;
-  const _ChatBubble({super.key, required this.message});
+  const _ChatBubble({required this.message});
 
   @override
   Widget build(BuildContext context) {
