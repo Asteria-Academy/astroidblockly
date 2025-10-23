@@ -21,6 +21,7 @@ declare global {
     setSequencerState: (state: 'running' | 'idle') => void;
     updateSequencerState: (state: 'running' | 'idle') => void;
     generateCodeForExecution: () => string;
+    toggleDebugView: () => void;
   }
 }
 
@@ -228,6 +229,13 @@ function initializeWorkspace() {
     sequencer = new SimulatorSequencer(simulator);
     simulator.sequencerVirtualPosition = sequencer.virtualPosition;
   }
+
+  let debugVisible = false;
+  (window as any).toggleDebugView = () => {
+    debugVisible = !debugVisible;
+    simulator?.toggleCollisionHelpers(debugVisible);
+    console.log(`Debug collision helpers are now ${debugVisible ? 'ON' : 'OFF'}`);
+  };
 
   registerContinuousToolbox();
 

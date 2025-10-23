@@ -4,6 +4,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { SOUND_MAPPING } from './sound_profile';
 
+export const ROBOT_LINEAR_RADIUS = 0.4;
+export const ROBOT_TURNING_RADIUS = 0.48;
+
 interface VirtualObstacle {
   mesh: THREE.Mesh;
   virtualPosition: THREE.Vector2;
@@ -27,11 +30,14 @@ export class Simulator {
   private resizeObserver: ResizeObserver;
   private targetHeadRotation: THREE.Euler = new THREE.Euler();
   private readonly headLerpFactor = 0.02;
+  private collisionHelper?: THREE.Mesh;
+  private turningHelper?: THREE.Mesh;
 
   public robotModel?: THREE.Group;
   public groundMaterial?: THREE.MeshStandardMaterial;
   public sequencerVirtualPosition?: THREE.Vector2;
 
+  // --- Lifecycle Methods ---
   constructor(container: HTMLElement) {
     // --- Scene ---
     this.scene = new THREE.Scene();
@@ -112,31 +118,6 @@ export class Simulator {
     this.animate();
   }
 
-  public dispose(): void {
-      this.resizeObserver.disconnect();
-  }
-
-  private onCanvasResize(width: number, height: number): void {
-    if (width === 0 || height === 0) return;
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height);
-  }
-
-  private _preloadAssets(): void {
-    const textureLoader = new THREE.TextureLoader();
-    const iconsToLoad = ['happy', 'sad', 'confused', 'mad'];
-    iconsToLoad.forEach(name => {
-      const texture = textureLoader.load(`icons/${name}.png`);
-      texture.colorSpace = THREE.SRGBColorSpace;
-      this.iconTextures.set(name, texture);
-    });
-
-    SOUND_MAPPING.forEach(sound => {
-      this.sounds.set(sound.id, new Audio(sound.assetPath));
-    });
-  }
-
   public async loadRobotModel(url: string): Promise<void> {
     const loader = new GLTFLoader();
     try {
@@ -154,6 +135,8 @@ export class Simulator {
       
       this.scene.add(this.robotModel);
       console.log('Robot model loaded successfully.');
+
+      this.createCollisionHelpers();
 
       this.robotModel.traverse((node) => {
         if (node.name === 'Dash-Head') { 
@@ -191,23 +174,11 @@ export class Simulator {
     }
   }
 
-  public playWheelAnimation(wheel: 'L' | 'R' | 'B', direction: 'Forward' | 'Backward') {
-      const animName = `Wheel_${wheel}_${direction}`;
-      const action = this.animations.get(animName);
-      if (action) {
-          action.reset().play();
-      } else {
-          console.warn(`Animation not found: ${animName}`);
-      }
-  }
-  
-  public stopWheelAnimation(wheel: 'L' | 'R' | 'B') {
-      const forwardAction = this.animations.get(`Wheel_${wheel}_Forward`);
-      const backwardAction = this.animations.get(`Wheel_${wheel}_Backward`);
-      forwardAction?.stop();
-      backwardAction?.stop();
+  public dispose(): void {
+      this.resizeObserver.disconnect();
   }
 
+  // --- Public Methods (Robot Part Control) ---
   public setHeadPosition(pitch: number, yaw: number): void {
     if (!this.head) return;
     
@@ -265,6 +236,24 @@ export class Simulator {
     }
   }
 
+  public playWheelAnimation(wheel: 'L' | 'R' | 'B', direction: 'Forward' | 'Backward') {
+      const animName = `Wheel_${wheel}_${direction}`;
+      const action = this.animations.get(animName);
+      if (action) {
+          action.reset().play();
+      } else {
+          console.warn(`Animation not found: ${animName}`);
+      }
+  }
+  
+  public stopWheelAnimation(wheel: 'L' | 'R' | 'B') {
+      const forwardAction = this.animations.get(`Wheel_${wheel}_Forward`);
+      const backwardAction = this.animations.get(`Wheel_${wheel}_Backward`);
+      forwardAction?.stop();
+      backwardAction?.stop();
+  }
+
+  // --- Public Method (Environment Control) ---
   public addObstacle(virtualPosition: THREE.Vector2, radius: number): void {
     const geometry = new THREE.CylinderGeometry(radius, radius, 1, 16);
     const material = new THREE.MeshStandardMaterial({ color: 0xff4444 });
@@ -274,27 +263,17 @@ export class Simulator {
     this.obstacles.push({ mesh, virtualPosition, radius });
   }
 
-  public updateEnvironment(robotVirtualPosition: THREE.Vector2): void {
-    if (this.groundMaterial) {
-      const textureScaleFactor = 8 / 20;
-      const textureOffset = robotVirtualPosition.clone().multiplyScalar(textureScaleFactor);
-      this.groundMaterial.map?.offset.set(textureOffset.x, -textureOffset.y);
-      this.groundMaterial.normalMap?.offset.set(textureOffset.x, -textureOffset.y);
-      this.groundMaterial.roughnessMap?.offset.set(textureOffset.x, -textureOffset.y);
-    }
-
-    this.obstacles.forEach(obs => {
-      const relativePos = obs.virtualPosition.clone().sub(robotVirtualPosition);
-      obs.mesh.position.x = relativePos.x;
-      obs.mesh.position.z = relativePos.y;
-    });
-  }
-
   public clearObstacles(): void {
       this.obstacles.forEach(obs => this.scene.remove(obs.mesh));
       this.obstacles = [];
   }
 
+  public toggleCollisionHelpers(visible: boolean): void {
+    if (this.collisionHelper) this.collisionHelper.visible = visible;
+    if (this.turningHelper) this.turningHelper.visible = visible;
+  }
+
+  // --- Animation Loop ---
   private animate = (): void => {
     requestAnimationFrame(this.animate);
     const deltaTime = this.clock.getDelta();
@@ -315,5 +294,64 @@ export class Simulator {
     }
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
+  }
+
+  // --- Internal Helpers & Event Handlers ---
+  private updateEnvironment(robotVirtualPosition: THREE.Vector2): void {
+    if (this.groundMaterial) {
+      const textureScaleFactor = 8 / 20;
+      const textureOffset = robotVirtualPosition.clone().multiplyScalar(textureScaleFactor);
+      this.groundMaterial.map?.offset.set(textureOffset.x, -textureOffset.y);
+      this.groundMaterial.normalMap?.offset.set(textureOffset.x, -textureOffset.y);
+      this.groundMaterial.roughnessMap?.offset.set(textureOffset.x, -textureOffset.y);
+    }
+
+    this.obstacles.forEach(obs => {
+      const relativePos = obs.virtualPosition.clone().sub(robotVirtualPosition);
+      obs.mesh.position.x = relativePos.x;
+      obs.mesh.position.z = relativePos.y;
+    });
+  }
+
+  private _preloadAssets(): void {
+    const textureLoader = new THREE.TextureLoader();
+    const iconsToLoad = ['happy', 'sad', 'confused', 'mad'];
+    iconsToLoad.forEach(name => {
+      const texture = textureLoader.load(`icons/${name}.png`);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      this.iconTextures.set(name, texture);
+    });
+
+    SOUND_MAPPING.forEach(sound => {
+      this.sounds.set(sound.id, new Audio(sound.assetPath));
+    });
+  }
+
+  private onCanvasResize(width: number, height: number): void {
+    if (width === 0 || height === 0) return;
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(width, height);
+  }
+
+  private createCollisionHelpers(): void {
+    if (!this.robotModel) return;
+
+    const height = 0.02;
+    const segments = 32;
+
+    const collisionGeometry = new THREE.CylinderGeometry(ROBOT_LINEAR_RADIUS, ROBOT_LINEAR_RADIUS, height, segments);
+    const collisionMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00, transparent: true, opacity: 0.25 });
+    this.collisionHelper = new THREE.Mesh(collisionGeometry, collisionMaterial);
+    this.collisionHelper.position.y = height / 2;
+    this.collisionHelper.visible = false;
+    this.robotModel.add(this.collisionHelper);
+
+    const turningGeometry = new THREE.CylinderGeometry(ROBOT_TURNING_RADIUS, ROBOT_TURNING_RADIUS, height, segments);
+    const turningMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00, transparent: true, opacity: 0.2 });
+    this.turningHelper = new THREE.Mesh(turningGeometry, turningMaterial);
+    this.turningHelper.position.y = height / 2;
+    this.turningHelper.visible = false;
+    this.robotModel.add(this.turningHelper);
   }
 }

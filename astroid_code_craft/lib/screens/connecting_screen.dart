@@ -49,7 +49,7 @@ class _ConnectingScreenState extends State<ConnectingScreen> {
         body: Stack(
           children: [
             Positioned.fill(
-              child: Image.asset('assets/img/bg.png', fit: BoxFit.cover),
+              child: Image.asset('assets/splash/bg.png', fit: BoxFit.cover),
             ),
             Center(child: _buildContent()),
           ],

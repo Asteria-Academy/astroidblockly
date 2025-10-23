@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 
@@ -42,13 +43,8 @@ class BluetoothService with ChangeNotifier {
 
   SequencerState _sequencerState = SequencerState.idle;
   SequencerState get sequencerState => _sequencerState;
-
-  // NEW: External callback that UI layers (including WebView bridge) can set to
-  // receive immediate sequencer state updates.
   Function(SequencerState)? onSequencerStateChanged;
 
-  // Helper to update the sequencer state, notify Flutter listeners, and call
-  // the external callback if present.
   void _updateSequencerState(SequencerState newState) {
     if (_sequencerState == newState) return;
     _sequencerState = newState;
@@ -262,7 +258,95 @@ class BluetoothService with ChangeNotifier {
 
     try {
       List<dynamic> commands = jsonDecode(commandJsonArray);
-      await _executeBlock(commands, 0);
+
+      int pc = 0;
+      List<Map<String, dynamic>> loopStack = [];
+
+      while (pc < commands.length && !_stopRequested) {
+        final command = commands[pc] as Map<String, dynamic>;
+        final String commandName = command['command'];
+        int pcIncrement = 1;
+
+        switch (commandName) {
+          case 'MOVE_TIMED':
+          case 'TURN_TIMED':
+          case 'WAIT':
+          case 'SET_HEAD_POSITION':
+          case 'SET_LED_COLOR':
+          case 'DISPLAY_ICON':
+          case 'PLAY_INTERNAL_SOUND':
+          case 'DRIVE_DIRECT':
+          case 'SET_GRIPPER':
+            await _executeActionCommand(command);
+            break;
+
+          // Finite loop start
+          case 'META_START_LOOP':
+            loopStack.add({
+              'type': 'finite',
+              'startIndex': pc + 1,
+              'iterationsLeft': command['params']['times'] as int,
+            });
+            break;
+
+          // Infinite loop start
+          case 'META_START_INFINITE_LOOP':
+            loopStack.add({'type': 'infinite', 'startIndex': pc + 1});
+            break;
+
+          // Loop end
+          case 'META_END_LOOP':
+            if (loopStack.isNotEmpty) {
+              final currentLoop = loopStack.last;
+              if (currentLoop['type'] == 'infinite') {
+                // Infinite loop: jump back to start
+                pc = currentLoop['startIndex'] as int;
+                pcIncrement = 0;
+              } else if ((currentLoop['iterationsLeft'] as int) > 1) {
+                // Finite loop: decrement and jump back
+                currentLoop['iterationsLeft'] =
+                    (currentLoop['iterationsLeft'] as int) - 1;
+                pc = currentLoop['startIndex'] as int;
+                pcIncrement = 0;
+              } else {
+                // Finite loop finished: pop and continue
+                loopStack.removeLast();
+              }
+            }
+            break;
+
+          // Break statement
+          case 'META_BREAK_LOOP':
+            if (loopStack.isNotEmpty) {
+              loopStack.removeLast();
+              pc = _findMatchingEndLoop(commands, pc);
+            }
+            break;
+
+          // If/Else-If statement (evaluate condition)
+          case 'META_IF':
+          case 'META_ELSE_IF':
+            final String condition = command['params']['condition'] as String;
+            final bool conditionMet = await _evaluateCondition(condition);
+            if (!conditionMet) {
+              pc = _findNextBranch(commands, pc);
+            }
+            break;
+
+          case 'META_ELSE':
+            pc = _findMatchingEndIf(commands, pc);
+            break;
+
+          case 'META_END_IF':
+            break;
+
+          default:
+            debugPrint("Unknown command: $commandName");
+            break;
+        }
+
+        pc += pcIncrement;
+      }
     } catch (e) {
       debugPrint("Error processing command sequence: $e");
     }
@@ -278,56 +362,353 @@ class BluetoothService with ChangeNotifier {
     _stopRequested = false;
   }
 
-  Future<int> _executeBlock(List<dynamic> commands, int index) async {
-    int i = index;
-    while (i < commands.length) {
-      if (_stopRequested) return commands.length;
+  Future<void> _executeActionCommand(Map<String, dynamic> command) async {
+    final String commandString = jsonEncode(command);
+    await sendCommand(commandString);
 
-      final command = commands[i] as Map<String, dynamic>;
-      final String commandName = command['command'];
-
-      if (commandName == 'META_START_LOOP') {
-        final int times = command['params']['times'];
-        for (int j = 0; j < times; j++) {
-          if (_stopRequested) break;
-          i = await _executeBlock(commands, i + 1);
-        }
-        int nestLevel = 0;
-        i++;
-        while (i < commands.length) {
-          final nextCmd = commands[i] as Map<String, dynamic>;
-          if (nextCmd['command'] == 'META_START_LOOP') nestLevel++;
-          if (nextCmd['command'] == 'META_END_LOOP') {
-            if (nestLevel == 0) break;
-            nestLevel--;
-          }
-          i++;
-        }
-      } else if (commandName == 'META_END_LOOP') {
-        return i;
+    if (command.containsKey('params') && command['params'] is Map) {
+      final params = command['params'] as Map<String, dynamic>;
+      if (params.containsKey('duration_ms')) {
+        final int duration = params['duration_ms'] as int;
+        debugPrint(
+          "Sequencer waiting for ${duration}ms for command '${command['command']}' to complete.",
+        );
+        await Future.delayed(Duration(milliseconds: duration));
       } else {
-        final String commandString = jsonEncode(command);
-        await sendCommand(commandString);
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+    } else {
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+  }
 
-        if (command.containsKey('params') && command['params'] is Map) {
-          final params = command['params'] as Map<String, dynamic>;
-          if (params.containsKey('duration_ms')) {
-            final int duration = params['duration_ms'] as int;
-            debugPrint(
-              "Sequencer waiting for ${duration}ms for command '$commandName' to complete.",
-            );
-            await Future.delayed(Duration(milliseconds: duration));
-          } else {
-            await Future.delayed(const Duration(milliseconds: 50));
+  // Get sensor data from the robot (asynchronous)
+  Future<int?> _getSensorData(String sensorName) async {
+    if (_txCharacteristic == null) return null;
+
+    final completer = Completer<int?>();
+    StreamSubscription? subscription;
+
+    final timeoutTimer = Timer(const Duration(seconds: 3), () {
+      if (!completer.isCompleted) {
+        subscription?.cancel();
+        completer.complete(null);
+        debugPrint("Sensor read timeout for $sensorName");
+      }
+    });
+
+    subscription = _txCharacteristic!.lastValueStream.listen((value) {
+      try {
+        final String data = String.fromCharCodes(value);
+        if (data.isNotEmpty) {
+          final Map<String, dynamic> response = jsonDecode(data);
+          if (response['status'] == 'SENSOR_DATA' &&
+              response['sensor'] == sensorName) {
+            if (!completer.isCompleted) {
+              timeoutTimer.cancel();
+              subscription?.cancel();
+              completer.complete(response['value'] as int?);
+            }
           }
-        } else {
-          await Future.delayed(const Duration(milliseconds: 50));
+        }
+      } catch (e) {
+        debugPrint("Error parsing sensor response: $e");
+      }
+    });
+
+    await sendCommand(
+      '{"command":"GET_SENSOR_DATA","params":{"sensor":"$sensorName"}}',
+    );
+
+    return completer.future;
+  }
+
+  Future<bool> _evaluateCondition(String condition) async {
+    try {
+      final trimmedCondition = condition.trim().toLowerCase();
+      if (trimmedCondition == 'true') return true;
+      if (trimmedCondition == 'false') return false;
+
+      // Replace mathRandomInt function calls with actual random numbers
+      condition = _replaceMathRandomInt(condition);
+
+      final sensorRegex = RegExp(
+        r"getSensorValue\('({[^']+})'\)\s*([<>=!]+)\s*(\d+)",
+      );
+      final sensorMatch = sensorRegex.firstMatch(condition);
+
+      if (sensorMatch != null) {
+        final String sensorCommandJson = sensorMatch.group(1)!;
+        final String operator = sensorMatch.group(2)!;
+        final int compareValue = int.parse(sensorMatch.group(3)!);
+
+        final sensorCommand = jsonDecode(sensorCommandJson);
+        final String sensorName = sensorCommand['params']['sensor'] as String;
+
+        final int? sensorValue = await _getSensorData(sensorName);
+
+        if (sensorValue == null) {
+          debugPrint("Failed to read sensor $sensorName");
+          return false;
+        }
+
+        debugPrint(
+          "Condition evaluation: $sensorValue $operator $compareValue",
+        );
+
+        switch (operator) {
+          case '>':
+            return sensorValue > compareValue;
+          case '<':
+            return sensorValue < compareValue;
+          case '>=':
+            return sensorValue >= compareValue;
+          case '<=':
+            return sensorValue <= compareValue;
+          case '==':
+            return sensorValue == compareValue;
+          case '!=':
+            return sensorValue != compareValue;
+          default:
+            debugPrint("Unknown operator: $operator");
+            return false;
         }
       }
 
+      try {
+        final result = _evaluateSimpleExpression(condition);
+        debugPrint("Expression '$condition' evaluated to: $result");
+        return result;
+      } catch (e) {
+        debugPrint("Could not evaluate expression: $condition");
+        return false;
+      }
+    } catch (e) {
+      debugPrint("Error evaluating condition: $e");
+      return false;
+    }
+  }
+
+  String _replaceMathRandomInt(String expression) {
+    final randomIntRegex = RegExp(r'mathRandomInt\((\d+),\s*(\d+)\)');
+
+    return expression.replaceAllMapped(randomIntRegex, (match) {
+      final min = int.parse(match.group(1)!);
+      final max = int.parse(match.group(2)!);
+      final randomValue = Random().nextInt(max - min + 1) + min;
+      debugPrint('mathRandomInt($min, $max) -> $randomValue');
+      return randomValue.toString();
+    });
+  }
+
+  bool _evaluateSimpleExpression(String expression) {
+    final stringCompRegex = RegExp(
+      r'''(["'])((?:[^"'\\]|\\.)*)(\1)\s*(==|!=)\s*(["'])((?:[^"'\\]|\\.)*)\5''',
+    );
+    final stringMatch = stringCompRegex.firstMatch(expression);
+
+    if (stringMatch != null) {
+      final leftStr = stringMatch.group(2)!;
+      final operator = stringMatch.group(4)!;
+      final rightStr = stringMatch.group(6)!;
+
+      debugPrint('String comparison: "$leftStr" $operator "$rightStr"');
+
+      switch (operator) {
+        case '==':
+          return leftStr == rightStr;
+        case '!=':
+          return leftStr != rightStr;
+        default:
+          throw Exception('String comparison only supports == and !=');
+      }
+    }
+
+    final expr = expression.replaceAll(' ', '');
+
+    final comparisonRegex = RegExp(
+      r'^([\d\+\-\*/\(\)]+)(==|!=|<=|>=|<|>)([\d\+\-\*/\(\)]+)$',
+    );
+    final match = comparisonRegex.firstMatch(expr);
+
+    if (match == null) {
+      throw Exception('Invalid expression format');
+    }
+
+    final leftExpr = match.group(1)!;
+    final operator = match.group(2)!;
+    final rightExpr = match.group(3)!;
+
+    final leftValue = _evaluateMath(leftExpr);
+    final rightValue = _evaluateMath(rightExpr);
+
+    switch (operator) {
+      case '==':
+        return leftValue == rightValue;
+      case '!=':
+        return leftValue != rightValue;
+      case '<':
+        return leftValue < rightValue;
+      case '>':
+        return leftValue > rightValue;
+      case '<=':
+        return leftValue <= rightValue;
+      case '>=':
+        return leftValue >= rightValue;
+      default:
+        throw Exception('Unknown operator: $operator');
+    }
+  }
+
+  double _evaluateMath(String expr) {
+    expr = expr.replaceAll(' ', '');
+
+    final number = double.tryParse(expr);
+    if (number != null) return number;
+
+    while (expr.contains('(')) {
+      final start = expr.lastIndexOf('(');
+      final end = expr.indexOf(')', start);
+      if (end == -1) throw Exception('Mismatched parentheses');
+
+      final subExpr = expr.substring(start + 1, end);
+      final result = _evaluateMath(subExpr);
+      expr =
+          expr.substring(0, start) +
+          result.toString() +
+          expr.substring(end + 1);
+    }
+
+    expr = _handleOperators(expr, ['*', '/']);
+    expr = _handleOperators(expr, ['+', '-']);
+
+    return double.parse(expr);
+  }
+
+  String _handleOperators(String expr, List<String> operators) {
+    for (final op in operators) {
+      while (expr.contains(op)) {
+        int opIndex = -1;
+        for (int i = 1; i < expr.length; i++) {
+          if (expr[i] == op) {
+            opIndex = i;
+            break;
+          }
+        }
+        if (opIndex == -1) break;
+
+        int leftStart = opIndex - 1;
+        while (leftStart > 0 &&
+            (expr[leftStart - 1].contains(RegExp(r'[\d.]')))) {
+          leftStart--;
+        }
+        final leftStr = expr.substring(leftStart, opIndex);
+        final left = double.parse(leftStr);
+
+        int rightEnd = opIndex + 1;
+        if (rightEnd < expr.length && expr[rightEnd] == '-') {
+          rightEnd++;
+        }
+        while (rightEnd < expr.length &&
+            (expr[rightEnd].contains(RegExp(r'[\d.]')))) {
+          rightEnd++;
+        }
+        final rightStr = expr.substring(opIndex + 1, rightEnd);
+        final right = double.parse(rightStr);
+
+        double result;
+        switch (op) {
+          case '+':
+            result = left + right;
+            break;
+          case '-':
+            result = left - right;
+            break;
+          case '*':
+            result = left * right;
+            break;
+          case '/':
+            result = left / right;
+            break;
+          default:
+            throw Exception('Unknown operator: $op');
+        }
+
+        expr =
+            expr.substring(0, leftStart) +
+            result.toString() +
+            expr.substring(rightEnd);
+      }
+    }
+    return expr;
+  }
+
+  int _findNextBranch(List<dynamic> commands, int startIndex) {
+    int nestLevel = 0;
+    int i = startIndex + 1;
+
+    while (i < commands.length) {
+      final cmd = commands[i] as Map<String, dynamic>;
+      final String cmdName = cmd['command'];
+
+      if (cmdName == 'META_IF') {
+        nestLevel++;
+      } else if (cmdName == 'META_END_IF') {
+        if (nestLevel == 0) {
+          return i;
+        }
+        nestLevel--;
+      } else if (nestLevel == 0) {
+        if (cmdName == 'META_ELSE_IF' || cmdName == 'META_ELSE') {
+          return i;
+        }
+      }
       i++;
     }
-    return i;
+    return commands.length;
+  }
+
+  int _findMatchingEndIf(List<dynamic> commands, int startIndex) {
+    int nestLevel = 0;
+    int i = startIndex + 1;
+
+    while (i < commands.length) {
+      final cmd = commands[i] as Map<String, dynamic>;
+      final String cmdName = cmd['command'];
+
+      if (cmdName == 'META_IF') {
+        nestLevel++;
+      } else if (cmdName == 'META_END_IF') {
+        if (nestLevel == 0) {
+          return i;
+        }
+        nestLevel--;
+      }
+      i++;
+    }
+    return commands.length;
+  }
+
+  int _findMatchingEndLoop(List<dynamic> commands, int startIndex) {
+    int nestLevel = 0;
+    int i = startIndex + 1;
+
+    while (i < commands.length) {
+      final cmd = commands[i] as Map<String, dynamic>;
+      final String cmdName = cmd['command'];
+
+      if (cmdName == 'META_START_LOOP' ||
+          cmdName == 'META_START_INFINITE_LOOP') {
+        nestLevel++;
+      } else if (cmdName == 'META_END_LOOP') {
+        if (nestLevel == 0) {
+          return i;
+        }
+        nestLevel--;
+      }
+      i++;
+    }
+    return commands.length;
   }
 
   void stopSequence() {
