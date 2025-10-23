@@ -129,6 +129,11 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
                         Navigator.pushNamed(context, AppRoutes.connect);
                       } else if (decoded['event'] == 'stop_code') {
                         _btService.stopSequence();
+                      } else if (decoded['event'] == 'open_chat_ai') {
+                        Navigator.pushReplacementNamed(context, AppRoutes.codeChat);
+                      } else if (decoded['event'] == 'navigate_home') {
+                        _btService.stopSequence();
+                        Navigator.pushReplacementNamed(context, AppRoutes.home);
                       }
                     }
                   } catch (e) {
@@ -137,6 +142,11 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
                     );
                   }
                 },
+              );
+            },
+            onLoadStop: (controller, url) {
+              controller.evaluateJavascript(
+                source: "if (window.setViewMode) { window.setViewMode('blocks'); }",
               );
             },
             onConsoleMessage: (controller, consoleMessage) {

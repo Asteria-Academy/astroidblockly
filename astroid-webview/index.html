@@ -1,40 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Astroid Editor</title>
-    <link rel="stylesheet" href="/src/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astroid Editor</title>
+  <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
-    <div id="bt-status-button" class="icon-button top-right">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bluetooth" viewBox="0 0 16 16">
-          <path fill-rule="evenodd" d="m8.543 3.948 1.316 1.316L8.543 6.58zm0 8.104 1.316-1.316L8.543 9.42zm-1.41-4.043L4.275 5.133l.827-.827L7.377 6.58V1.128l4.137 4.136L8.787 8.01l2.745 2.745-4.136 4.137V9.42l-2.294 2.274-.827-.827zM7.903 16c3.498 0 5.904-1.655 5.904-8.01 0-6.335-2.406-7.99-5.903-7.99S2 1.655 2 8.01C2 14.344 4.407 16 7.904 16Z"/>
-        </svg>
-    </div>
-    <div id="play-button" class="icon-button top-right">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
-    </div>
-    <div id="mode-toggle" class="top-right">
-        <span id="mode-label-run" class="mode-label">Run</span>
-        <label class="switch">
-            <input type="checkbox" id="mode-checkbox">
-            <span class="slider"></span>
-        </label>
-        <span id="mode-label-sim" class="mode-label">Simulate</span>
-    </div>
-    <div id="blockly-div"></div>
-    <div id="simulator-container">
-        <div id="fullscreen-button" class="icon-button sim-button">
-            <svg class="icon-fullscreen-enter" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M15 3h6v6h-2V5h-4V3zM9 3v2H5v4H3V3h6zm6 18v-2h4v-4h2v6h-6zm-6 0H3v-6h2v4h4v2z"/>
-            </svg>
-            <svg class="icon-fullscreen-exit" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" style="display: none;">
-                <path stroke="#E0E0E0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h4V4m12 4h-4V4M4 16h4v4m12-4h-4v4"/>
-            </svg>
+  <div class="app-shell">
+    <header class="top-app-bar">
+      <div class="app-bar-left">
+        <button id="back-button" class="app-bar-button" aria-label="Back to Main Menu">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M19 11H7.83l5.58-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H19v-2z"/>
+          </svg>
+        </button>
+        <div class="file-name-field">
+          <input id="project-name-input" type="text" value="Loading..." spellcheck="false" aria-label="Project name">
         </div>
-    </div>
+        <div id="save-indicator" class="save-indicator saved" role="status" aria-live="polite">
+          <span class="save-indicator-icon"></span>
+          <span id="save-indicator-label" class="save-indicator-label">Saved</span>
+        </div>
+      </div>
+      <div class="app-bar-right">
+        <div id="app-mode-toggle" class="mode-toggle">
+          <span id="mode-label-run" class="mode-label">Run</span>
+          <label class="switch">
+            <input type="checkbox" id="mode-checkbox" aria-label="Toggle simulation mode">
+            <span class="slider"></span>
+          </label>
+          <span id="mode-label-sim" class="mode-label">Simulate</span>
+        </div>
+        <div class="view-toggle" role="tablist">
+          <button id="view-toggle-blocks" class="view-toggle-button active" data-target="blocks" role="tab" aria-selected="true">
+            3D Blocks
+          </button>
+          <button id="view-toggle-chat" class="view-toggle-button" data-target="chat" role="tab" aria-selected="false">
+            Chat AI
+          </button>
+        </div>
+      </div>
+    </header>
 
-    <script type="module" src="/src/main.ts"></script>
+    <main class="workspace-stage">
+      <div id="blockly-stage">
+        <div id="blockly-div"></div>
+        <div id="trash-zone" class="trash-zone" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+            <path d="M9 3V4H4V6H5V20C5 21.1 5.9 22 7 22H17C18.1 22 19 21.1 19 20V6H20V4H15V3H9ZM7 6H17V20H7V6ZM9 8V18H11V8H9ZM13 8V18H15V8H13Z"/>
+          </svg>
+          <span>Drop to delete</span>
+        </div>
+      </div>
+
+      <div id="floating-toolbar" class="floating-toolbar">
+        <div class="toolbar-header" id="toolbar-grip">
+          <span class="grip-dots" aria-hidden="true"></span>
+          <button id="toolbar-collapse" class="toolbar-collapse" aria-label="Toggle toolbar">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M7 10l5 5 5-5H7z"/>
+            </svg>
+          </button>
+        </div>
+
+        <div id="toolbar-content" class="toolbar-content">
+          <button id="play-button" class="toolbar-button primary" aria-label="Run sequence">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </button>
+
+          <div class="toolbar-divider"></div>
+
+          <button id="bt-status-button" class="toolbar-button" aria-label="Bluetooth status">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
+            </svg>
+          </button>
+
+          <button id="reset-button" class="toolbar-button" aria-label="Reset workspace">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6a6 6 0 0 1-6 6 6 6 0 0 1-5.65-4H4.26C4.86 19.78 8.08 23 12 23c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/>
+            </svg>
+          </button>
+
+          <button id="undo-button" class="toolbar-button" aria-label="Undo">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6 0 1.1-.9 2-2 2h-3v2h3c2.21 0 4-1.79 4-4 0-4.42-3.58-8-8-8z"/>
+            </svg>
+          </button>
+
+          <button id="redo-button" class="toolbar-button" aria-label="Redo">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M18 6l-5-5v4C8.02 5 4 9.03 4 14s4.02 9 9 9c2.3 0 4.4-.88 6-2.31l-1.42-1.42A6.964 6.964 0 0 1 13 21c-3.87 0-7-3.13-7-7s3.13-7 7-7v4l5-5z"/>
+            </svg>
+          </button>
+
+          <button id="viewer-toggle" class="toolbar-button" aria-label="Toggle 3D viewer">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M12 7a5 5 0 0 0-5 5 5 5 0 0 0 10 0 5 5 0 0 0-5-5zm0 8.2A3.2 3.2 0 0 1 8.8 12 3.2 3.2 0 0 1 12 8.8 3.2 3.2 0 0 1 15.2 12 3.2 3.2 0 0 1 12 15.2z"/>
+              <path d="M12 4.5l7.53 4.35-7.53 4.35L4.47 8.85 12 4.5m0-2.31L2 9l10 6.81L22 9 12 2.19z"/>
+            </svg>
+          </button>
+
+          <button id="recenter-button" class="toolbar-button" aria-label="Recenter workspace">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M12 2c-.55 0-1 .45-1 1v1.07A8.002 8.002 0 0 0 4.07 11H3a1 1 0 0 0 0 2h1.07A8.002 8.002 0 0 0 11 19.93V21a1 1 0 0 0 2 0v-1.07A8.002 8.002 0 0 0 19.93 13H21a1 1 0 0 0 0-2h-1.07A8.002 8.002 0 0 0 13 4.07V3c0-.55-.45-1-1-1zm0 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="simulator-container" class="simulator-container">
+        <div id="simulator-header" class="simulator-header">
+          <span class="simulator-title">3D Viewer</span>
+          <div class="simulator-header-actions">
+            <button id="simulator-close" class="simulator-header-button" aria-label="Collapse viewer">
+              <svg viewBox="0 0 24 24">
+                <path d="M19 13H5v-2h14v2z"/>
+              </svg>
+            </button>
+            <button id="fullscreen-button" class="simulator-header-button" aria-label="Toggle fullscreen">
+              <svg class="icon-fullscreen-enter" viewBox="0 0 24 24">
+                <path d="M15 3h6v6h-2V5h-4V3zM9 3v2H5v4H3V3h6zm6 18v-2h4v-4h2v6h-6zm-6 0H3v-6h2v4h4v2z"/>
+              </svg>
+              <svg class="icon-fullscreen-exit" viewBox="0 0 24 24" style="display: none;">
+                <path d="M4 8h4V4h2v6H4zm12-4v4h4v2h-6V4zm4 12h-4v4h-2v-6h6zm-12 4v-4H4v-2h6v6z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="simulator-resize-handle" class="simulator-resize-handle" aria-hidden="true"></div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

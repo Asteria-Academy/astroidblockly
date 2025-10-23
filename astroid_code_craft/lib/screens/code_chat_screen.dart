@@ -11,6 +11,7 @@ import '../services/agentic_ai_service.dart';
 import '../models/chat_message.dart';
 import '../models/agentic_response.dart';
 import '../config/app_prompts.dart';
+import '../router/app_router.dart';
 
 class CodeChatScreen extends StatelessWidget {
   const CodeChatScreen({super.key});
@@ -24,6 +25,21 @@ class CodeChatScreen extends StatelessWidget {
         title: Text('Astroid CodeCraft', style: GoogleFonts.titanOne()),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: _EditorModeToggle(
+              activeMode: _EditorSurface.chat,
+              onBlocksSelected: () {
+                Navigator.pushReplacementNamed(
+                  context,
+                  AppRoutes.webview,
+                  arguments: {'action': 'load_last'},
+                );
+              },
+            ),
+          ),
+        ],
       ),
       // Since landscape is enforced, we use a Row
       body: Row(
@@ -50,6 +66,107 @@ class CodeChatScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+enum _EditorSurface { blocks, chat }
+
+class _EditorModeToggle extends StatelessWidget {
+  const _EditorModeToggle({
+    required this.activeMode,
+    required this.onBlocksSelected,
+  });
+
+  final _EditorSurface activeMode;
+  final VoidCallback onBlocksSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final isBlocksActive = activeMode == _EditorSurface.blocks;
+    final isChatActive = activeMode == _EditorSurface.chat;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF141F44),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF314D96)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x3311254F),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _EditorToggleChip(
+            label: '3D Blocks',
+            isActive: isBlocksActive,
+            onTap: isBlocksActive ? null : onBlocksSelected,
+          ),
+          const SizedBox(width: 4),
+          _EditorToggleChip(
+            label: 'Chat AI',
+            isActive: isChatActive,
+            onTap: null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EditorToggleChip extends StatelessWidget {
+  const _EditorToggleChip({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isActive;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderRadius = BorderRadius.circular(16);
+    final gradient = const LinearGradient(
+      colors: [Color(0xFF3A9EFF), Color(0xFF6BF9FF)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: borderRadius,
+        splashFactory: InkRipple.splashFactory,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: borderRadius,
+            gradient: isActive ? gradient : null,
+            color: isActive ? null : const Color(0x1416273F),
+            border: Border.all(
+              color: isActive ? Colors.transparent : const Color(0x334A6FFF),
+            ),
+          ),
+          child: Text(
+            label,
+            style: GoogleFonts.titanOne(
+              fontSize: 12,
+              color: isActive ? const Color(0xFF071432) : Colors.white70,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ),
       ),
     );
   }
