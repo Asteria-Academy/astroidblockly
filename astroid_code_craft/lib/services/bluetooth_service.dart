@@ -59,6 +59,9 @@ class BluetoothService with ChangeNotifier {
   int _batteryLevel = -1;
   int get batteryLevel => _batteryLevel;
 
+  String? _lastConnectionError;
+  String? get lastConnectionError => _lastConnectionError;
+
   bool get isConnected =>
       _connectionState == BluetoothConnectionState.connected;
   bool _stopRequested = false;
@@ -119,6 +122,8 @@ class BluetoothService with ChangeNotifier {
   }
 
   Future<bool> connect(fbp.BluetoothDevice device) async {
+    _lastConnectionError = null;
+
     if (isConnected) {
       if (device.remoteId == _connectedDevice?.remoteId) {
         return true;
@@ -138,6 +143,8 @@ class BluetoothService with ChangeNotifier {
       bool success = await _discoverServicesAndCharacteristics(device);
 
       if (!success) {
+        _lastConnectionError =
+            "Could not find required UART service/characteristics. Check if device firmware is correct.";
         await disconnect();
         return false;
       }
@@ -154,10 +161,31 @@ class BluetoothService with ChangeNotifier {
           _cleanUpConnection();
         }
       });
-
       return true;
     } catch (e) {
       debugPrint("Connection failed with exception: $e");
+
+      String errorMsg = e.toString();
+      if (errorMsg.contains('timeout')) {
+        _lastConnectionError =
+            "Connection timeout. Device may be out of range or busy.";
+      } else if (errorMsg.contains('connect')) {
+        _lastConnectionError = "Failed to establish connection. Try again.";
+      } else if (errorMsg.contains('discover')) {
+        _lastConnectionError =
+            "Service discovery failed. Device may be incompatible.";
+      } else {
+        _lastConnectionError =
+            "Connection error: ${errorMsg.length > 100 ? '${errorMsg.substring(0, 100)}...' : errorMsg}";
+      }
+
+      try {
+        if (_connectedDevice != null) {
+          await _connectedDevice!.disconnect();
+        }
+      } catch (disconnectError) {
+        debugPrint("Error during cleanup disconnect: $disconnectError");
+      }
       _cleanUpConnection();
       return false;
     }
@@ -186,7 +214,12 @@ class BluetoothService with ChangeNotifier {
     fbp.BluetoothDevice device,
   ) async {
     try {
-      List<fbp.BluetoothService> services = await device.discoverServices();
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      List<fbp.BluetoothService> services = await device
+          .discoverServices()
+          .timeout(const Duration(seconds: 20));
+
       for (var service in services) {
         if (service.uuid == nordicUartServiceUuid) {
           for (var char in service.characteristics) {

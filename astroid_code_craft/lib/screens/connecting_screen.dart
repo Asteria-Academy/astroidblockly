@@ -17,6 +17,7 @@ class ConnectingScreen extends StatefulWidget {
 class _ConnectingScreenState extends State<ConnectingScreen> {
   final BluetoothService _btService = BluetoothService.instance;
   _ConnectingStatus _status = _ConnectingStatus.connecting;
+  String? _errorReason;
 
   @override
   void initState() {
@@ -36,7 +37,11 @@ class _ConnectingScreenState extends State<ConnectingScreen> {
         }
       });
     } else {
-      setState(() => _status = _ConnectingStatus.failed);
+      setState(() {
+        _status = _ConnectingStatus.failed;
+        _errorReason =
+            _btService.lastConnectionError ?? "Unknown error occurred";
+      });
     }
   }
 
@@ -75,7 +80,7 @@ class _ConnectingScreenState extends State<ConnectingScreen> {
           iconColor: const Color(0xFFF44336),
           glowColor: const Color(0xFFEF5350),
           message: "Connection Failed",
-          subtitle: "Could not connect to the robot.",
+          subtitle: _errorReason ?? "Could not connect to the robot.",
           buttonText: "Go Back",
           onButtonPressed: () => Navigator.of(context).pop(false),
         );
