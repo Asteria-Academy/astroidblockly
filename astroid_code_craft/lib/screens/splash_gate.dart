@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../router/app_router.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import '../router/app_router.dart';
+import '../services/background_music_service.dart';
 
 // A flag to easily turn the on-screen logs on or off.
 // SET THIS TO 'false' BEFORE BUILDING THE FINAL APK FOR YOUR FRIEND.
@@ -43,14 +44,22 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _progressCtl =
-        AnimationController(vsync: this, duration: const Duration(seconds: 3))
-          ..addStatusListener((s) {
-            if (s == AnimationStatus.completed) {
-              _log("Animation completed. Navigating to home.");
-              if (!mounted) return;
-              Navigator.pushReplacementNamed(context, AppRoutes.home);
-            }
-          });
+        AnimationController(
+          vsync: this,
+          duration: const Duration(seconds: 3),
+        )..addStatusListener((s) {
+          if (s == AnimationStatus.completed) {
+            _log(
+              "Animation completed. Starting background music and navigating to home.",
+            );
+
+            // Start background music
+            BackgroundMusicService().startBackgroundMusic();
+
+            if (!mounted) return;
+            Navigator.pushReplacementNamed(context, AppRoutes.home);
+          }
+        });
 
     _meteorCtl = AnimationController(
       vsync: this,

@@ -160,6 +160,214 @@ function saveProjectsData(data: any) {
   localStorage.setItem('astroid_projects', JSON.stringify(data));
 }
 
+function initializeDefaultProjects() {
+  const data = getProjectsData();
+  
+  // Only initialize if there are no projects yet
+  if (data.projects.length > 0) {
+    return;
+  }
+  
+  console.log('First time launch - creating default example projects');
+  
+  const now = Date.now();
+  
+  // Project 1: Rainbow LED
+  const rainbowLedProject = {
+    id: `proj-${now}`,
+    name: 'Rainbow LED',
+    last_modified: now,
+    workspace_json: {
+      blocks: {
+        languageVersion: 0,
+        blocks: [
+          {
+            type: 'program_start',
+            id: 'start_block',
+            x: 200,
+            y: 100,
+            deletable: false,
+            movable: false,
+            next: {
+              block: {
+                type: 'controls_repeat_ext',
+                fields: { TIMES: 10 },
+                inputs: {
+                  DO: {
+                    block: {
+                      type: 'led_rgb',
+                      fields: {
+                        RED: 255,
+                        GREEN: 0,
+                        BLUE: 0
+                      },
+                      next: {
+                        block: {
+                          type: 'time_delay',
+                          fields: { DELAY: 500 },
+                          next: {
+                            block: {
+                              type: 'led_rgb',
+                              fields: {
+                                RED: 0,
+                                GREEN: 255,
+                                BLUE: 0
+                              },
+                              next: {
+                                block: {
+                                  type: 'time_delay',
+                                  fields: { DELAY: 500 },
+                                  next: {
+                                    block: {
+                                      type: 'led_rgb',
+                                      fields: {
+                                        RED: 0,
+                                        GREEN: 0,
+                                        BLUE: 255
+                                      },
+                                      next: {
+                                        block: {
+                                          type: 'time_delay',
+                                          fields: { DELAY: 500 }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    thumbnail_data: null
+  };
+  
+  // Project 2: Obstacle Detection
+  const obstacleDetectionProject = {
+    id: `proj-${now + 1}`,
+    name: 'Obstacle Detection',
+    last_modified: now + 1,
+    workspace_json: {
+      blocks: {
+        languageVersion: 0,
+        blocks: [
+          {
+            type: 'program_start',
+            id: 'start_block',
+            x: 200,
+            y: 100,
+            deletable: false,
+            movable: false,
+            next: {
+              block: {
+                type: 'controls_repeat_ext',
+                fields: { TIMES: 100 },
+                inputs: {
+                  DO: {
+                    block: {
+                      type: 'controls_if',
+                      inputs: {
+                        IF0: {
+                          block: {
+                            type: 'logic_compare',
+                            fields: { OP: 'LT' },
+                            inputs: {
+                              A: {
+                                block: {
+                                  type: 'sensor_ultrasonic'
+                                }
+                              },
+                              B: {
+                                block: {
+                                  type: 'math_number',
+                                  fields: { NUM: 20 }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        DO0: {
+                          block: {
+                            type: 'motor_stop',
+                            next: {
+                              block: {
+                                type: 'sound_buzzer',
+                                fields: {
+                                  FREQUENCY: 1000,
+                                  DURATION: 200
+                                },
+                                next: {
+                                  block: {
+                                    type: 'motor_backward',
+                                    fields: {
+                                      LEFT_SPEED: 150,
+                                      RIGHT_SPEED: 150
+                                    },
+                                    next: {
+                                      block: {
+                                        type: 'time_delay',
+                                        fields: { DELAY: 500 },
+                                        next: {
+                                          block: {
+                                            type: 'motor_turn_right',
+                                            fields: {
+                                              LEFT_SPEED: 150,
+                                              RIGHT_SPEED: 150
+                                            },
+                                            next: {
+                                              block: {
+                                                type: 'time_delay',
+                                                fields: { DELAY: 500 }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      next: {
+                        block: {
+                          type: 'motor_forward',
+                          fields: {
+                            LEFT_SPEED: 150,
+                            RIGHT_SPEED: 150
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    thumbnail_data: null
+  };
+  
+  data.projects = [rainbowLedProject, obstacleDetectionProject];
+  data.last_opened_id = rainbowLedProject.id;
+  
+  saveProjectsData(data);
+  console.log('Default projects created successfully');
+}
+
 document.addEventListener('pointermove', (event: PointerEvent) => {
   lastPointerPosition.x = event.clientX;
   lastPointerPosition.y = event.clientY;
@@ -167,6 +375,10 @@ document.addEventListener('pointermove', (event: PointerEvent) => {
 });
 
 backButton?.addEventListener('click', () => {
+  // Clear active challenge state when navigating back to home
+  localStorage.removeItem('astroid_active_challenge');
+  console.log('Cleared active challenge state on back navigation');
+  
   if (window.astroidAppChannel) {
     window.astroidAppChannel('{"event":"navigate_home"}');
   } else {
@@ -330,6 +542,20 @@ function toggleViewerVisibility(visible: boolean) {
       simulatorContainer.style.right = '';
       simulatorContainer.style.bottom = '';
     }
+    
+    if ((window as any).isChallengeMode) {
+      const isFullscreen = simulatorContainer.classList.contains('fullscreen');
+      const challengeMetrics = document.getElementById('challenge-metrics');
+      const challengeMetricsFullscreen = document.getElementById('challenge-metrics-fullscreen');
+      
+      if (isFullscreen) {
+        challengeMetrics?.style.setProperty('display', 'none');
+        challengeMetricsFullscreen?.style.setProperty('display', 'inline-flex');
+      } else {
+        challengeMetrics?.style.setProperty('display', 'inline-flex');
+        challengeMetricsFullscreen?.style.setProperty('display', 'none');
+      }
+    }
   } else {
     if (simulatorContainer.classList.contains('fullscreen')) {
       simulatorContainer.classList.remove('fullscreen');
@@ -338,7 +564,22 @@ function toggleViewerVisibility(visible: boolean) {
         restoreSimulatorBounds(simulatorContainer);
         clearStoredBounds(simulatorContainer);
       }
+      
+      // Toggle challenge metrics visibility back to top bar when exiting fullscreen
+      if ((window as any).isChallengeMode) {
+        const challengeMetrics = document.getElementById('challenge-metrics');
+        const challengeMetricsFullscreen = document.getElementById('challenge-metrics-fullscreen');
+        challengeMetrics?.style.setProperty('display', 'inline-flex');
+        challengeMetricsFullscreen?.style.setProperty('display', 'none');
+      }
     }
+    
+    // Always hide fullscreen metrics when minimizing the viewer
+    if ((window as any).isChallengeMode) {
+      const challengeMetricsFullscreen = document.getElementById('challenge-metrics-fullscreen');
+      challengeMetricsFullscreen?.style.setProperty('display', 'none');
+    }
+    
     simulatorContainer.classList.add('hidden');
   }
 
@@ -641,6 +882,11 @@ async function generateWorkspaceThumbnail(): Promise<string | null> {
   return '[]';
 };
 
+(window as any).getChallengeProgress = (): string => {
+  const progress = localStorage.getItem('astroid_challenge_progress');
+  return progress || '{}';
+};
+
 function initializeWorkspace() {
   if (!blocklyDiv || !playButton || !btStatusButton) {
     throw new Error('Required DOM elements not found!');
@@ -688,6 +934,25 @@ function initializeWorkspace() {
 
   primaryWorkspace = Blockly.inject(blocklyDiv, workspaceConfig);
 
+  // Listen to workspace changes to update block count in real-time during challenge mode
+  primaryWorkspace.addChangeListener((event: Blockly.Events.Abstract) => {
+    if ((window as any).isChallengeMode && !sequencerRunning) {
+      // Only update block count when not running (avoid performance issues)
+      if (event.type === Blockly.Events.BLOCK_CREATE || 
+          event.type === Blockly.Events.BLOCK_DELETE ||
+          event.type === Blockly.Events.BLOCK_MOVE) {
+        // Update block count display
+        const blockCount = primaryWorkspace?.getAllBlocks(false).filter(block => !block.isShadow()).length || 0;
+        const blockString = `${blockCount} block${blockCount !== 1 ? 's' : ''}`;
+        
+        const blocksEl = document.getElementById('metric-blocks');
+        const blocksElFullscreen = document.getElementById('metric-blocks-fullscreen');
+        if (blocksEl) blocksEl.textContent = blockString;
+        if (blocksElFullscreen) blocksElFullscreen.textContent = blockString;
+      }
+    }
+  });
+
   const urlParams = new URLSearchParams(window.location.search);
   const action = urlParams.get('action');
   const projectId = urlParams.get('id');
@@ -713,16 +978,55 @@ function initializeWorkspace() {
     window.setSequencerState(state);
   };
 
+  if (action === 'load_challenge' && projectId) {
+    const levelId = parseInt(projectId, 10);
+    if (!isNaN(levelId)) {
+      initializeChallengeMode(levelId, sequencer).catch(err => {
+        console.error('Failed to load challenge level:', err);
+        alert('Failed to load challenge level. Returning to home.');
+        if (window.astroidAppChannel) {
+          window.astroidAppChannel('{"event":"navigate_home"}');
+        }
+      });
+    }
+  } else if (action !== 'open' && action !== 'new_project') {
+    // Only restore challenge if we're not explicitly opening/creating a project
+    const activeChallengeData = localStorage.getItem('astroid_active_challenge');
+    if (activeChallengeData) {
+      try {
+        const challengeState = JSON.parse(activeChallengeData);
+        console.log(`Restoring active challenge: ${challengeState.levelName}`);
+        initializeChallengeMode(challengeState.levelId, sequencer).catch(err => {
+          console.error('Failed to restore challenge:', err);
+          localStorage.removeItem('astroid_active_challenge');
+        });
+      } catch (e) {
+        console.error('Failed to parse challenge state:', e);
+        localStorage.removeItem('astroid_active_challenge');
+      }
+    }
+  }
+
+  // Initialize default example projects on first launch
+  initializeDefaultProjects();
+
   let data = getProjectsData();
 
   resetButton?.addEventListener('click', () => {
     if (!primaryWorkspace) return;
-    const shouldReset = window.confirm('Reset workspace to starter blocks? This action cannot be undone.');
-    if (!shouldReset) {
-      return;
+    
+    if ((window as any).isChallengeMode) {
+      const shouldReset = window.confirm('Reset challenge? This will reload the page and reset everything (your code is auto-saved).');
+      if (!shouldReset) return;
+      
+      window.location.reload();
+    } else {
+      const shouldReset = window.confirm('Reset workspace to starter blocks? This action cannot be undone.');
+      if (!shouldReset) return;
+      
+      Blockly.serialization.workspaces.load(INITIAL_WORKSPACE_JSON, primaryWorkspace);
+      setSaveState('unsaved');
     }
-    Blockly.serialization.workspaces.load(INITIAL_WORKSPACE_JSON, primaryWorkspace);
-    setSaveState('unsaved');
   });
 
   undoButton?.addEventListener('click', () => {
@@ -740,6 +1044,10 @@ function initializeWorkspace() {
   let projectLoaded = false;
 
   if (action === 'open' && projectId) {
+    // Clear any active challenge state when opening a regular project
+    localStorage.removeItem('astroid_active_challenge');
+    console.log('Cleared active challenge state for regular project');
+    
     const projectToLoad = data.projects.find((p: Project) => p.id === projectId);
     if (projectToLoad) {
       console.log(`Opening specific project: ${projectToLoad.name}`);
@@ -756,6 +1064,10 @@ function initializeWorkspace() {
       console.error(`Project with ID ${projectId} not found. Defaulting to last session.`);
     }
   } else if (action === 'new_project') {
+    // Clear any active challenge state when creating a new project
+    localStorage.removeItem('astroid_active_challenge');
+    console.log('Cleared active challenge state for new project');
+    
     console.log("Action: Creating a new project.");
     createNewProject(data);
     projectLoaded = true;
@@ -818,6 +1130,26 @@ function initializeWorkspace() {
       return;
     }
 
+    if ((window as any).isChallengeMode) {
+      const levelId = (window as any).currentChallengeLevel?.id;
+      if (levelId) {
+        if (saveTimeout !== null) {
+          clearTimeout(saveTimeout);
+        }
+        saveTimeout = window.setTimeout(() => {
+          const workspaceJson = Blockly.serialization.workspaces.save(primaryWorkspace);
+          const challengeWorkspaces = JSON.parse(localStorage.getItem('astroid_challenge_workspaces') || '{}');
+          challengeWorkspaces[`level_${levelId}`] = {
+            workspace: workspaceJson,
+            lastModified: Date.now()
+          };
+          localStorage.setItem('astroid_challenge_workspaces', JSON.stringify(challengeWorkspaces));
+          console.log(`Challenge level ${levelId} workspace auto-saved`);
+        }, 1000);
+      }
+      return;
+    }
+
     setSaveState('unsaved');
 
     if (saveTimeout !== null) {
@@ -855,23 +1187,53 @@ function initializeWorkspace() {
   playButton.addEventListener('click', () => {
     if (sequencerRunning) {
       // --- Stop Logic ---
-      if (isSimulateMode) {
+      if (isSimulateMode || (window as any).isChallengeMode) {
         sequencer?.stopSequence();
         window.setSequencerState('idle');
+        
+        if ((window as any).isChallengeMode) {
+          sequencer?.endChallengeRun(false);
+          stopMetricsTimer();
+        }
       } else {
         if (window.astroidAppChannel) {
           window.astroidAppChannel('{"event":"stop_code"}');
         }
       }
     } else {
+      // Prevent running again after winning
+      if ((window as any).isChallengeMode && (window as any).challengeWon) {
+        alert('Challenge already completed! 🎉\n\nYou can reset to try again or go back to level selection.');
+        return;
+      }
+
       const commandJsonString = window.generateCodeForExecution();
 
-      if (isSimulateMode) {
-        console.log("Running in Simulation mode.");
+      if ((window as any).isChallengeMode || isSimulateMode) {
+        console.log((window as any).isChallengeMode ? "Running Challenge Mode." : "Running in Simulation mode.");
         const commandList = JSON.parse(commandJsonString);
+        
+        if ((window as any).isChallengeMode) {
+          (window as any).challengeAttemptNumber++;
+          sequencer?.startChallengeRun((window as any).challengeAttemptNumber);
+          
+          startMetricsTimer();
+        }
+        
         window.setSequencerState('running');
         sequencer?.runCommandSequence(commandList).then(() => {
           window.setSequencerState('idle');
+          
+          if ((window as any).isChallengeMode) {
+            const won = sequencer?.checkWinCondition() || false;
+            sequencer?.endChallengeRun(won);
+            
+            if (won) {
+              stopMetricsTimer();
+              (window as any).challengeWon = true; // Mark as won
+              evaluateChallengeStars(sequencer);
+            }
+          }
         });
       } else {
         console.log("Running on Robot via BLE.");
@@ -899,6 +1261,13 @@ function initializeWorkspace() {
         restoreSimulatorBounds(simulatorContainer);
         clearStoredBounds(simulatorContainer);
       }
+      
+      if ((window as any).isChallengeMode) {
+        const challengeMetrics = document.getElementById('challenge-metrics');
+        const challengeMetricsFullscreen = document.getElementById('challenge-metrics-fullscreen');
+        challengeMetrics?.style.setProperty('display', 'inline-flex');
+        challengeMetricsFullscreen?.style.setProperty('display', 'none');
+      }
     }
   };
 
@@ -920,11 +1289,25 @@ function initializeWorkspace() {
       simulatorContainer.style.bottom = '';
       simulatorContainer.style.width = '';
       simulatorContainer.style.height = '';
+      
+      if ((window as any).isChallengeMode) {
+        const challengeMetrics = document.getElementById('challenge-metrics');
+        const challengeMetricsFullscreen = document.getElementById('challenge-metrics-fullscreen');
+        challengeMetrics?.style.setProperty('display', 'none');
+        challengeMetricsFullscreen?.style.setProperty('display', 'inline-flex');
+      }
     } else {
       simulatorContainer.classList.remove('fullscreen');
       if (hasStoredBounds(simulatorContainer)) {
         restoreSimulatorBounds(simulatorContainer);
         clearStoredBounds(simulatorContainer);
+      }
+      
+      if ((window as any).isChallengeMode) {
+        const challengeMetrics = document.getElementById('challenge-metrics');
+        const challengeMetricsFullscreen = document.getElementById('challenge-metrics-fullscreen');
+        challengeMetrics?.style.setProperty('display', 'inline-flex');
+        challengeMetricsFullscreen?.style.setProperty('display', 'none');
       }
     }
 
@@ -945,6 +1328,390 @@ function initializeWorkspace() {
   };
   modeCheckbox?.addEventListener('change', updateMode);
   updateMode();
+}
+
+async function initializeChallengeMode(levelId: number, sequencer: SimulatorSequencer | null) {
+  if (!sequencer) {
+    throw new Error('Sequencer not initialized');
+  }
+
+  console.log(`Initializing Challenge Mode - Level ${levelId}`);
+
+  const response = await fetch('levels.json');
+  if (!response.ok) {
+    throw new Error('Failed to load levels.json');
+  }
+
+  const levels = await response.json();
+  const level = levels.find((l: any) => l.id === levelId);
+
+  if (!level) {
+    throw new Error(`Level ${levelId} not found`);
+  }
+
+  (window as any).isChallengeMode = true;
+  (window as any).currentChallengeLevel = level;
+  (window as any).challengeAttemptNumber = 0;
+  (window as any).challengeWon = false; // Track if challenge is already won
+  
+  localStorage.setItem('astroid_active_challenge', JSON.stringify({
+    levelId: levelId,
+    levelName: level.name,
+    timestamp: Date.now()
+  }));
+
+  sequencer.loadLevel(level);
+
+  const modeCheckbox = document.getElementById('mode-checkbox') as HTMLInputElement;
+  if (modeCheckbox) {
+    modeCheckbox.checked = true;
+    
+    const event = new Event('change');
+    modeCheckbox.dispatchEvent(event);
+  }
+
+  hideSandboxUI();
+
+  createStarConditionsPanel(level);
+
+  suppressSaveIndicator = true;
+  try {
+    const challengeWorkspaces = JSON.parse(localStorage.getItem('astroid_challenge_workspaces') || '{}');
+    const savedWorkspace = challengeWorkspaces[`level_${levelId}`];
+    
+    if (savedWorkspace && savedWorkspace.workspace) {
+      console.log(`Loading saved workspace for level ${levelId}`);
+      Blockly.serialization.workspaces.load(savedWorkspace.workspace, primaryWorkspace);
+    } else {
+      console.log(`No saved workspace found, loading initial blocks for level ${levelId}`);
+      Blockly.serialization.workspaces.load(INITIAL_WORKSPACE_JSON, primaryWorkspace);
+    }
+  } finally {
+    suppressSaveIndicator = false;
+  }
+
+  console.log(`Challenge Mode Initialized: ${level.name}`);
+}
+
+function hideSandboxUI() {
+  const projectNameInput = document.getElementById('project-name-input');
+  const saveIndicator = document.getElementById('save-indicator');
+  const btStatusButton = document.getElementById('bt-status-button');
+  const modeToggle = document.getElementById('app-mode-toggle');
+  const challengeMetrics = document.getElementById('challenge-metrics');
+  const challengeMetricsFullscreen = document.getElementById('challenge-metrics-fullscreen');
+
+  projectNameInput?.style.setProperty('display', 'none');
+  saveIndicator?.style.setProperty('display', 'none');
+  btStatusButton?.style.setProperty('display', 'none');
+  modeToggle?.style.setProperty('display', 'none');
+  
+  challengeMetrics?.style.setProperty('display', 'inline-flex');
+  challengeMetricsFullscreen?.style.setProperty('display', 'none');
+
+  console.log('Sandbox UI hidden for Challenge Mode');
+}
+
+function updateChallengeMetrics() {
+  if (!(window as any).isChallengeMode) return;
+
+  const challengeMetrics = (window as any).challengeMetrics;
+  if (!challengeMetrics) return;
+
+  const elapsedTime = Math.floor((Date.now() - challengeMetrics.startTime) / 1000);
+  const minutes = Math.floor(elapsedTime / 60);
+  const seconds = elapsedTime % 60;
+  const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  
+  const timeEl = document.getElementById('metric-time');
+  const timeElFullscreen = document.getElementById('metric-time-fullscreen');
+  if (timeEl) timeEl.textContent = timeString;
+  if (timeElFullscreen) timeElFullscreen.textContent = timeString;
+
+  const blockCount = primaryWorkspace?.getAllBlocks(false).filter(block => !block.isShadow()).length || 0;
+  const blockString = `${blockCount} block${blockCount !== 1 ? 's' : ''}`;
+  
+  const blocksEl = document.getElementById('metric-blocks');
+  const blocksElFullscreen = document.getElementById('metric-blocks-fullscreen');
+  if (blocksEl) blocksEl.textContent = blockString;
+  if (blocksElFullscreen) blocksElFullscreen.textContent = blockString;
+
+  const attemptNumber = (window as any).challengeAttemptNumber || 1;
+  const attemptString = `Attempt #${attemptNumber}`;
+  
+  const attemptsEl = document.getElementById('metric-attempts');
+  const attemptsElFullscreen = document.getElementById('metric-attempts-fullscreen');
+  if (attemptsEl) attemptsEl.textContent = attemptString;
+  if (attemptsElFullscreen) attemptsElFullscreen.textContent = attemptString;
+}
+
+function startMetricsTimer() {
+  if ((window as any).metricsInterval) {
+    clearInterval((window as any).metricsInterval);
+  }
+  
+  (window as any).challengeMetrics = {
+    startTime: Date.now()
+  };
+  
+  (window as any).metricsInterval = setInterval(updateChallengeMetrics, 100);
+  updateChallengeMetrics();
+}
+
+function stopMetricsTimer() {
+  if ((window as any).metricsInterval) {
+    clearInterval((window as any).metricsInterval);
+    (window as any).metricsInterval = null;
+  }
+}
+
+function createStarConditionsPanel(level: any) {
+  const panel = document.createElement('div');
+  panel.id = 'star-conditions-panel';
+  panel.style.cssText = `
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    bottom: 20px;
+    background: linear-gradient(135deg, rgba(17, 32, 61, 0.95), rgba(30, 50, 90, 0.95));
+    border: 2px solid rgba(65, 216, 255, 0.6);
+    border-radius: 16px;
+    padding: 0;
+    width: 300px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    z-index: 999;
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    overflow: hidden;
+  `;
+
+  const difficultyColors: Record<string, string> = {
+    easy: '#4CAF50',
+    medium: '#FF9800',
+    hard: '#F44336'
+  };
+
+  const header = document.createElement('div');
+  header.style.cssText = `
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(65, 216, 255, 0.3);
+    flex-shrink: 0;
+  `;
+  
+  const titleDiv = document.createElement('div');
+  titleDiv.style.cssText = `flex: 1;`;
+  titleDiv.innerHTML = `
+    <h2 style="margin: 0; color: #41D8FF; font-size: 18px; font-weight: 600;">
+      ⭐ Challenge
+    </h2>
+  `;
+  
+  const collapseBtn = document.createElement('button');
+  collapseBtn.id = 'star-panel-toggle';
+  collapseBtn.style.cssText = `
+    background: rgba(65, 216, 255, 0.1);
+    border: 1px solid rgba(65, 216, 255, 0.3);
+    border-radius: 6px;
+    color: #41D8FF;
+    cursor: pointer;
+    padding: 6px 10px;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  `;
+  collapseBtn.innerHTML = '▼';
+  collapseBtn.title = 'Toggle panel';
+  
+  header.appendChild(titleDiv);
+  header.appendChild(collapseBtn);
+
+  const contentDiv = document.createElement('div');
+  contentDiv.id = 'star-panel-content';
+  contentDiv.style.cssText = `
+    padding: 16px 20px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    min-height: 0;
+  `;
+  
+  contentDiv.innerHTML = `
+    <div style="margin-bottom: 16px;">
+      <h3 style="margin: 0 0 8px 0; color: #FFF; font-size: 16px; font-weight: 600;">
+        ${level.name}
+      </h3>
+      <div style="display: inline-block; padding: 4px 12px; background: ${difficultyColors[level.difficulty]}; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+        ${level.difficulty}
+      </div>
+      <p style="margin: 12px 0 0 0; color: #B0C4DE; font-size: 13px; line-height: 1.5;">
+        ${level.description}
+      </p>
+    </div>
+    <div style="border-top: 1px solid rgba(65, 216, 255, 0.3); padding-top: 16px;">
+      <h3 style="margin: 0 0 12px 0; color: #FFF; font-size: 14px; font-weight: 600;">
+        Star Objectives
+      </h3>
+      <div id="star-list">
+        ${level.stars.map((star: any, index: number) => `
+          <div class="star-item" data-star-index="${index}" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+            <svg class="star-icon" width="20" height="20" viewBox="0 0 24 24" style="fill: #555; flex-shrink: 0;">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+            <span style="color: #CCC; font-size: 13px; line-height: 1.4;">
+              ${star.label}
+            </span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  panel.appendChild(header);
+  panel.appendChild(contentDiv);
+  document.body.appendChild(panel);
+
+  let isCollapsed = false;
+  collapseBtn.addEventListener('click', () => {
+    isCollapsed = !isCollapsed;
+    if (isCollapsed) {
+      contentDiv.style.display = 'none';
+      collapseBtn.innerHTML = '▶';
+      panel.style.bottom = 'auto';
+    } else {
+      contentDiv.style.display = 'block';
+      collapseBtn.innerHTML = '▼';
+      panel.style.bottom = '20px';
+    }
+  });
+
+  console.log('Star conditions panel created with collapse toggle');
+}
+
+function evaluateChallengeStars(sequencer: SimulatorSequencer | null) {
+  if (!sequencer) return;
+
+  const level = (window as any).currentChallengeLevel;
+  if (!level) return;
+
+  const metrics = sequencer.getChallengeMetrics();
+  if (!metrics) return;
+
+  const elapsedMs = metrics.endTime - metrics.startTime;
+  const elapsedSeconds = elapsedMs / 1000;
+
+  // Filter out shadow blocks to match metrics display
+  const blockCount = primaryWorkspace.getAllBlocks(false).filter(block => !block.isShadow()).length;
+
+  const blocksUsed = primaryWorkspace.getAllBlocks(false).map((block: Blockly.Block) => block.type);
+
+  const earnedStars: boolean[] = [];
+
+  console.log(`Evaluating stars - Time: ${elapsedSeconds.toFixed(2)}s, Blocks: ${blockCount}, Collisions: ${metrics.collisionCount}, Attempt: ${metrics.attemptNumber}`);
+
+  level.stars.forEach((star: any, index: number) => {
+    let earned = false;
+
+    switch (star.type) {
+      case 'time':
+        earned = elapsedMs <= star.value;
+        console.log(`Star ${index} (Time): ${earned ? '✓' : '✗'} (${elapsedMs}ms <= ${star.value}ms)`);
+        break;
+
+      case 'maxBlocks':
+        earned = blockCount <= star.value;
+        console.log(`Star ${index} (MaxBlocks): ${earned ? '✓' : '✗'} (${blockCount} <= ${star.value})`);
+        break;
+
+      case 'requireBlocks':
+        earned = star.value.every((requiredType: string) => blocksUsed.includes(requiredType));
+        console.log(`Star ${index} (RequireBlocks): ${earned ? '✓' : '✗'}`);
+        break;
+
+      case 'noHits':
+        earned = metrics.collisionCount === 0;
+        console.log(`Star ${index} (NoHits): ${earned ? '✓' : '✗'} (${metrics.collisionCount} collisions)`);
+        break;
+
+      case 'oneShot':
+        earned = metrics.attemptNumber === 1;
+        console.log(`Star ${index} (OneShot): ${earned ? '✓' : '✗'} (Attempt #${metrics.attemptNumber})`);
+        break;
+
+      case 'proximity':
+        earned = (metrics.finalDistance || 999) <= star.value;
+        console.log(`Star ${index} (Proximity): ${earned ? '✓' : '✗'} (${metrics.finalDistance?.toFixed(3)}m <= ${star.value}m)`);
+        break;
+
+      default:
+        console.warn(`Unknown star type: ${star.type}`);
+    }
+
+    earnedStars.push(earned);
+  });
+
+  updateStarUI(earnedStars);
+
+  saveChallengeProgress(level.id, earnedStars);
+
+  showCompletionMessage(earnedStars.filter(s => s).length, earnedStars.length);
+}
+
+function updateStarUI(earnedStars: boolean[]) {
+  earnedStars.forEach((earned, index) => {
+    const starItem = document.querySelector(`.star-item[data-star-index="${index}"]`);
+    if (!starItem) return;
+
+    const starIcon = starItem.querySelector('.star-icon') as SVGElement;
+    if (starIcon) {
+      starIcon.style.fill = earned ? '#FFD700' : '#555';
+      if (earned) {
+        starIcon.style.filter = 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))';
+      }
+    }
+  });
+}
+
+function saveChallengeProgress(levelId: number, earnedStars: boolean[]) {
+  const progress = localStorage.getItem('astroid_challenge_progress');
+  const progressData = progress ? JSON.parse(progress) : {};
+
+  if (!progressData[levelId]) {
+    progressData[levelId] = { stars: [], bestAttempt: 0 };
+  }
+
+  for (let i = 0; i < earnedStars.length; i++) {
+    if (earnedStars[i]) {
+      progressData[levelId].stars[i] = true;
+    } else if (progressData[levelId].stars[i] === undefined) {
+      progressData[levelId].stars[i] = false;
+    }
+  }
+
+  const totalStars = progressData[levelId].stars.filter((s: boolean) => s).length;
+  progressData[levelId].bestAttempt = Math.max(progressData[levelId].bestAttempt || 0, totalStars);
+
+  localStorage.setItem('astroid_challenge_progress', JSON.stringify(progressData));
+  console.log(`Progress saved: Level ${levelId} - ${totalStars}/${earnedStars.length} stars`);
+}
+
+function showCompletionMessage(starsEarned: number, totalStars: number) {
+  const messages = [
+    "Keep trying! You can do better! 💪",
+    "Good start! Try to earn more stars! ⭐",
+    "Great work! Almost perfect! 🌟",
+    "Excellent! You're a master programmer! 🎉"
+  ];
+
+  const messageIndex = Math.min(starsEarned, messages.length - 1);
+  const message = messages[messageIndex];
+
+  alert(`🎉 Level Complete!\n\nStars Earned: ${starsEarned} / ${totalStars}\n\n${message}`);
 }
 
 function createNewProject(data: any) {

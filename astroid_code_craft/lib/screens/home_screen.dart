@@ -150,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     final h = c.maxHeight;
 
                     // Skala responsif (selaras dengan splash)
-                    final topNavW = math.min(w * 0.5, 520.0);
+                    final topNavW = math.min(w * 0.6, 640.0);
                     final topNavH = math.min(h * 0.15, 72.0);
 
                     final panelW = math.min(w * 0.78, 960.0);
@@ -175,6 +175,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     void onConnectTap() {
                       _playBubblePointOne();
                       Navigator.pushNamed(context, AppRoutes.connect);
+                    }
+
+                    void onChallengesTap() {
+                      _playBubblePointOne();
+                      Navigator.pushNamed(context, AppRoutes.challengeSelect);
                     }
 
                     void onCreateAdventureTap() {
@@ -220,6 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: topNavH,
                             onTapHome: onHomeTap,
                             onTapCode: onCodeTap,
+                            onTapChallenges: onChallengesTap,
                             onTapConnect: onConnectTap,
                           ),
                         ),
@@ -268,6 +274,7 @@ class _TopSegmentedNav extends StatelessWidget {
     required this.height,
     required this.onTapHome,
     required this.onTapCode,
+    required this.onTapChallenges,
     required this.onTapConnect,
   });
 
@@ -275,6 +282,7 @@ class _TopSegmentedNav extends StatelessWidget {
   final double height;
   final VoidCallback onTapHome;
   final VoidCallback onTapCode;
+  final VoidCallback onTapChallenges;
   final VoidCallback onTapConnect;
 
   @override
@@ -314,7 +322,6 @@ class _TopSegmentedNav extends StatelessWidget {
           Expanded(
             child: _NavPill(
               label: 'HOME',
-              width: width * 0.3,
               icon: Icons.rocket_launch_outlined,
               active: true,
               height: segmentHeight,
@@ -325,7 +332,6 @@ class _TopSegmentedNav extends StatelessWidget {
           Expanded(
             child: _NavPill(
               label: 'CODE',
-              width: width * 0.5,
               icon: Icons.satellite_alt_outlined,
               height: segmentHeight,
               onTap: onTapCode,
@@ -334,8 +340,16 @@ class _TopSegmentedNav extends StatelessWidget {
           _NavDivider(color: dividerColor, height: segmentHeight),
           Expanded(
             child: _NavPill(
+              label: 'PLAY',
+              icon: Icons.stars_outlined,
+              height: segmentHeight,
+              onTap: onTapChallenges,
+            ),
+          ),
+          _NavDivider(color: dividerColor, height: segmentHeight),
+          Expanded(
+            child: _NavPill(
               label: 'CONNECT',
-              width: width * 0.3,
               icon: Icons.wifi_tethering_outlined,
               height: segmentHeight,
               onTap: onTapConnect,
@@ -376,7 +390,6 @@ class _NavPill extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.height,
-    this.width = double.infinity,
     this.active = false,
     this.onTap,
   });
@@ -384,7 +397,6 @@ class _NavPill extends StatelessWidget {
   final String label;
   final IconData icon;
   final double height;
-  final double width;
   final bool active;
   final VoidCallback? onTap;
 
@@ -416,7 +428,6 @@ class _NavPill extends StatelessWidget {
       borderRadius: borderRadius,
       onTap: onTap,
       child: Container(
-        width: width,
         height: height,
         decoration: BoxDecoration(
           gradient: gradient,

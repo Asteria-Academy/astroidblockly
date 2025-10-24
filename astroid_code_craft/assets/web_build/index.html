@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Astroid Editor</title>
-  <script type="module" crossorigin src="./assets/index-DEunGcgp.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-D7wlPAmD.css">
+  <title>Astroid Editor</title>
+  <script type="module" crossorigin src="./assets/index-CGPgU8c6.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BIyEpdgF.css">
 </head>
 <body>
   <div class="app-shell">
@@ -22,6 +22,26 @@
         <div id="save-indicator" class="save-indicator saved" role="status" aria-live="polite">
           <span class="save-indicator-icon"></span>
           <span id="save-indicator-label" class="save-indicator-label">Saved</span>
+        </div>
+        <div id="challenge-metrics" class="challenge-metrics" style="display: none;">
+          <span class="metric-item">
+            <svg viewBox="0 0 24 24" width="16" height="16" style="fill: #41D8FF; vertical-align: middle;">
+              <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+            </svg>
+            <span id="metric-time">0:00</span>
+          </span>
+          <span class="metric-item">
+            <svg viewBox="0 0 24 24" width="16" height="16" style="fill: #FFB84D; vertical-align: middle;">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+            </svg>
+            <span id="metric-blocks">0 blocks</span>
+          </span>
+          <span class="metric-item">
+            <svg viewBox="0 0 24 24" width="16" height="16" style="fill: #4CAF50; vertical-align: middle;">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+            <span id="metric-attempts">Attempt #1</span>
+          </span>
         </div>
       </div>
       <div class="app-bar-right">
@@ -116,6 +136,26 @@
       <div id="simulator-container" class="simulator-container">
         <div id="simulator-header" class="simulator-header">
           <span class="simulator-title">3D Viewer</span>
+          <div id="challenge-metrics-fullscreen" class="challenge-metrics-fullscreen" style="display: none;">
+            <span class="metric-item">
+              <svg viewBox="0 0 24 24" width="16" height="16" style="fill: #41D8FF; vertical-align: middle;">
+                <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+              </svg>
+              <span id="metric-time-fullscreen">0:00</span>
+            </span>
+            <span class="metric-item">
+              <svg viewBox="0 0 24 24" width="16" height="16" style="fill: #FFB84D; vertical-align: middle;">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+              </svg>
+              <span id="metric-blocks-fullscreen">0 blocks</span>
+            </span>
+            <span class="metric-item">
+              <svg viewBox="0 0 24 24" width="16" height="16" style="fill: #4CAF50; vertical-align: middle;">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+              </svg>
+              <span id="metric-attempts-fullscreen">Attempt #1</span>
+            </span>
+          </div>
           <div class="simulator-header-actions">
             <button id="simulator-close" class="simulator-header-button" aria-label="Collapse viewer">
               <svg viewBox="0 0 24 24">
@@ -136,6 +176,6 @@
       </div>
     </main>
   </div>
-
+
 </body>
 </html>

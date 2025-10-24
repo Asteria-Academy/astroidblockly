@@ -1,15 +1,64 @@
 import * as THREE from 'three';
 import { Simulator, ROBOT_LINEAR_RADIUS, ROBOT_TURNING_RADIUS} from './simulator';
 
-interface VirtualObstacle {
-    position: THREE.Vector2;
-    radius: number;
+interface LevelObject {
+  type: 'circle' | 'rectangle';
+  position: THREE.Vector2;
+  radius?: number;
+  width?: number;
+  height?: number;
 }
 
 interface LoopFrame {
     type: 'finite' | 'infinite';
     startIndex: number;
     iterationsLeft?: number;
+}
+
+interface Checkpoint {
+    type?: 'circle' | 'rectangle';
+    position: { x: number; y: number };
+    radius?: number;
+    width?: number;
+    height?: number;
+}
+
+interface LevelData {
+    id: number;
+    name: string;
+    difficulty: 'easy' | 'medium' | 'hard';
+    description: string;
+    environment: {
+        start: { position: { x: number; y: number }; rotation: number };
+        checkpoints: Checkpoint[];
+        obstacles: Array<{
+            type: string;
+            position: { x: number; y: number };
+            radius: number;
+            isWall?: boolean;
+        }>;
+        randomizeObstacles?: {
+            tags: string[];
+            offsetY: { min: number; max: number };
+        };
+    };
+    constraints?: {
+        allowedBlocks?: string[];
+    };
+    stars: Array<{
+        type: string;
+        value?: number;
+        label: string;
+    }>;
+}
+
+interface ChallengeMetrics {
+    startTime: number;
+    endTime: number;
+    collisionCount: number;
+    attemptNumber: number;
+    completed: boolean;
+    finalDistance?: number;
 }
 
 const MAX_SENSOR_RANGE = 5.0;
@@ -20,12 +69,19 @@ export class SimulatorSequencer {
     private isRunning: boolean = false;
     private stopRequested: boolean = false;
     public virtualPosition: THREE.Vector2 = new THREE.Vector2(0, 0);
-    private virtualObstacles: VirtualObstacle[] = [];
+    private levelObjects: LevelObject[] = [];
     private lastCollisionLogTime: number = 0;
     private lastCollisionNotificationTime: number = 0;
-    private readonly COLLISION_LOG_THROTTLE_MS = 500; // Only log collision once per 500ms
-    private readonly COLLISION_NOTIFICATION_THROTTLE_MS = 500; // Only show notification once per 500ms
+    private readonly COLLISION_LOG_THROTTLE_MS = 500;
+    private readonly COLLISION_NOTIFICATION_THROTTLE_MS = 500;
     private notificationElement: HTMLDivElement | null = null;
+
+    // Challenge Mode properties
+    private currentLevel: LevelData | null = null;
+    private challengeMetrics: ChallengeMetrics | null = null;
+    private isChallengeMode: boolean = false;
+    private currentCheckpointIndex: number = 0;
+    private checkpointReachedFlags: boolean[] = [];
 
     // --- Lifecycle & Public Control API ---
     constructor(simulator: Simulator) {
@@ -98,8 +154,23 @@ export class SimulatorSequencer {
         const loopStack: LoopFrame[] = [];
 
         console.log("--- Starting Simulation Interpreter ---");
+
+        let lastWinCheck = 0;
+        const winCheckInterval = 100;
+
         try {
             while (pc < commands.length && !this.stopRequested) {
+                if (this.isChallengeMode) {
+                    const now = performance.now();
+                    if (now - lastWinCheck > winCheckInterval) {
+                        if (this.checkWinCondition()) {
+                            console.log("🎉 Level completed!");
+                            this.stopRequested = true;
+                            break;
+                        }
+                        lastWinCheck = now;
+                    }
+                }
                 const command = commands[pc];
                 const commandName = command.command;
 
@@ -213,15 +284,13 @@ export class SimulatorSequencer {
         const { command: commandName, params } = command;
         const robot = this.simulator.robotModel!;
         
-        // Pre-check for turning clearance - but don't spam console!
         if (commandName === 'TURN_TIMED') {
             const turningClearanceMultiplier = ROBOT_TURNING_RADIUS / ROBOT_LINEAR_RADIUS;
             if (this.isCollisionAt(this.virtualPosition, turningClearanceMultiplier)) {
                 console.log("Turn cancelled: Not enough clearance.");
                 this.showCollisionNotification("⚠️ Cannot turn - obstacle too close!");
                 this.stopAllMovement();
-                // Add a small delay to prevent infinite loop spam in forever loops
-                setTimeout(() => resolve(), 50);
+                setTimeout(() => resolve(), 200);
                 return;
             }
         }
@@ -230,7 +299,6 @@ export class SimulatorSequencer {
         let lastTime = startTime;
         const duration = params.duration_ms || 0;
 
-        // Handle WAIT command (just a delay, no movement)
         if (commandName === 'WAIT') {
             setTimeout(() => {
                 if (this.stopRequested) {
@@ -248,9 +316,14 @@ export class SimulatorSequencer {
             this.simulator.playWheelAnimation('R', isTurn ? (direction === 'left' ? 'Forward' : 'Backward') : (direction === 'forward' ? 'Forward' : 'Backward'));
         }
 
+        let animationStopped = false;
+
         const tick = (currentTime: number) => {
+            if (animationStopped) return;
+
             const elapsedTime = currentTime - startTime;
             if (elapsedTime >= duration || this.stopRequested) {
+                animationStopped = true;
                 this.stopAllMovement();
                 return resolve();
             }
@@ -269,7 +342,13 @@ export class SimulatorSequencer {
                     if (!this.isCollisionAt(nextPosition)) {
                         this.virtualPosition.copy(nextPosition);
                     } else {
-                        this.showCollisionNotification("🛑 Movement stopped - obstacle detected!");
+                        if (this.isChallengeMode && this.currentLevel?.difficulty === 'hard') {
+                            this.showCollisionNotification("💥 FAILED! Hard mode - no collisions allowed!");
+                            this.stopRequested = true;
+                        } else {
+                            this.showCollisionNotification("🛑 Movement stopped - obstacle detected!");
+                        }
+                        animationStopped = true;
                         this.stopAllMovement();
                         return resolve();
                     }
@@ -329,19 +408,98 @@ export class SimulatorSequencer {
     private isCollisionAt(position: THREE.Vector2, clearanceMultiplier: number = 1.0): boolean {
         const effectiveRobotRadius = ROBOT_LINEAR_RADIUS * clearanceMultiplier;
 
-        for (const obstacle of this.virtualObstacles) {
-            const distanceToObstacle = position.distanceTo(obstacle.position);
-            const minimumSafeDistance = effectiveRobotRadius + obstacle.radius;
-            if (distanceToObstacle < minimumSafeDistance) {
+        for (const obj of this.levelObjects) {
+            let isHit = false;
+            
+            if (obj.type === 'circle') {
+                const distanceToObstacle = position.distanceTo(obj.position);
+                const minimumSafeDistance = effectiveRobotRadius + obj.radius!;
+                isHit = distanceToObstacle < minimumSafeDistance;
+                
+            } else if (obj.type === 'rectangle') {
+                isHit = this.checkCircleRectangleCollision(position, effectiveRobotRadius, obj);
+            }
+
+            if (isHit) {
                 const now = performance.now();
                 if (now - this.lastCollisionLogTime > this.COLLISION_LOG_THROTTLE_MS) {
                     console.log(`Collision detected! Effective radius ${effectiveRobotRadius.toFixed(2)}m`);
                     this.lastCollisionLogTime = now;
+
+                    if (this.isChallengeMode && this.challengeMetrics) {
+                        this.challengeMetrics.collisionCount++;
+                    }
                 }
                 return true;
             }
         }
         return false;
+    }
+
+    private checkCircleRectangleCollision(circlePos: THREE.Vector2, circleRadius: number, rect: LevelObject): boolean {
+        const halfWidth = rect.width! / 2;
+        const halfHeight = rect.height! / 2;
+        
+        const closestX = Math.max(rect.position.x - halfWidth, Math.min(circlePos.x, rect.position.x + halfWidth));
+        const closestY = Math.max(rect.position.y - halfHeight, Math.min(circlePos.y, rect.position.y + halfHeight));
+
+        const closestPoint = new THREE.Vector2(closestX, closestY);
+        
+        const distance = circlePos.distanceTo(closestPoint);
+        
+        return distance < circleRadius;
+    }
+
+    private getRayRectangleDistance(rayOrigin: THREE.Vector2, rayDirection: THREE.Vector2, rect: LevelObject): number {
+        const halfWidth = rect.width! / 2;
+        const halfHeight = rect.height! / 2;
+        
+        const minX = rect.position.x - halfWidth;
+        const maxX = rect.position.x + halfWidth;
+        const minY = rect.position.y - halfHeight;
+        const maxY = rect.position.y + halfHeight;
+        
+        let closestT = MAX_SENSOR_RANGE;
+        
+        const epsilon = 0.0001;
+        
+        if (Math.abs(rayDirection.x) > epsilon) {
+            const tLeft = (minX - rayOrigin.x) / rayDirection.x;
+            if (tLeft > 0) {
+                const yAtLeft = rayOrigin.y + tLeft * rayDirection.y;
+                if (yAtLeft >= minY && yAtLeft <= maxY && tLeft < closestT) {
+                    closestT = tLeft;
+                }
+            }
+            
+            const tRight = (maxX - rayOrigin.x) / rayDirection.x;
+            if (tRight > 0) {
+                const yAtRight = rayOrigin.y + tRight * rayDirection.y;
+                if (yAtRight >= minY && yAtRight <= maxY && tRight < closestT) {
+                    closestT = tRight;
+                }
+            }
+        }
+        
+        if (Math.abs(rayDirection.y) > epsilon) {
+            const tBottom = (minY - rayOrigin.y) / rayDirection.y;
+            if (tBottom > 0) {
+                const xAtBottom = rayOrigin.x + tBottom * rayDirection.x;
+                if (xAtBottom >= minX && xAtBottom <= maxX && tBottom < closestT) {
+                    closestT = tBottom;
+                }
+            }
+            
+            const tTop = (maxY - rayOrigin.y) / rayDirection.y;
+            if (tTop > 0) {
+                const xAtTop = rayOrigin.x + tTop * rayDirection.x;
+                if (xAtTop >= minX && xAtTop <= maxX && tTop < closestT) {
+                    closestT = tTop;
+                }
+            }
+        }
+        
+        return closestT;
     }
 
     private getDistance(): number {
@@ -357,21 +515,27 @@ export class SimulatorSequencer {
         let closestDistance = MAX_SENSOR_RANGE;
 
         for (const rayOrigin of rayOrigins) {
-            for (const obstacle of this.virtualObstacles) {
-                const L = obstacle.position.clone().sub(rayOrigin);
-                const tca = L.dot(forwardVector);
-                if (tca < 0) continue;
-                
-                const d2 = L.dot(L) - tca * tca;
-                const r2 = obstacle.radius * obstacle.radius;
-                if (d2 > r2) continue;
-                
-                const thc = Math.sqrt(r2 - d2);
-                
-                const intersectionDistance = tca - thc;
+            for (const obj of this.levelObjects) {
+                if (obj.type === 'circle') {
+                    const L = obj.position.clone().sub(rayOrigin);
+                    const tca = L.dot(forwardVector);
+                    if (tca < 0) continue;
+                    
+                    const d2 = L.dot(L) - tca * tca;
+                    const r2 = obj.radius! * obj.radius!;
+                    if (d2 > r2) continue;
+                    
+                    const thc = Math.sqrt(r2 - d2);
+                    const intersectionDistance = tca - thc;
 
-                if (intersectionDistance < closestDistance) {
-                    closestDistance = intersectionDistance;
+                    if (intersectionDistance < closestDistance) {
+                        closestDistance = intersectionDistance;
+                    }
+                } else if (obj.type === 'rectangle') {
+                    const rectDist = this.getRayRectangleDistance(rayOrigin, forwardVector, obj);
+                    if (rectDist < closestDistance) {
+                        closestDistance = rectDist;
+                    }
                 }
             }
         }
@@ -425,19 +589,203 @@ export class SimulatorSequencer {
         return commands.length;
     }
 
-    // --- Environment & General Helpers ---
-    private setupEnvironment(): void {
-        this.simulator.clearObstacles();
-        this.virtualObstacles = [];
-        this.addVirtualObstacle(new THREE.Vector2(0, 3), 0.5);
-        this.addVirtualObstacle(new THREE.Vector2(0, -3), 0.5);
-        this.addVirtualObstacle(new THREE.Vector2(2, 5), 0.7);
-        this.addVirtualObstacle(new THREE.Vector2(-4, 4), 1.0);
+    // --- Challenge Mode Methods ---
+    public loadLevel(levelData: LevelData): void {
+        console.log(`Loading level: ${levelData.name}`);
+        this.currentLevel = levelData;
+        this.isChallengeMode = true;
+
+        this.simulator.clearLevel();
+        this.levelObjects = [];
+
+        let obstacles = [...levelData.environment.obstacles];
+        if (levelData.environment.randomizeObstacles) {
+            const randomizeConfig = levelData.environment.randomizeObstacles;
+            obstacles = obstacles.map(obs => {
+                const hasTag = randomizeConfig.tags.some(tag => 
+                    (obs as any)[tag] === true
+                );
+                if (hasTag) {
+                    const offsetY = 
+                        randomizeConfig.offsetY.min + 
+                        Math.random() * (randomizeConfig.offsetY.max - randomizeConfig.offsetY.min);
+                    return {
+                        ...obs,
+                        position: {
+                            x: obs.position.x,
+                            y: obs.position.y + offsetY
+                        }
+                    };
+                }
+                return obs;
+            });
+        }
+
+        obstacles.forEach(obstacle => {
+            this.addLevelObject(obstacle);
+        });
+
+        const checkpoints = levelData.environment.checkpoints;
+        this.currentCheckpointIndex = 0;
+        this.checkpointReachedFlags = new Array(checkpoints.length).fill(false);
+
+        if (checkpoints.length > 0) {
+            this.simulator.addFinishZone(checkpoints[0]);
+        }
+
+        this.resetLevel();
+
+        console.log(`Level loaded with ${obstacles.length} obstacles and ${checkpoints.length} checkpoint(s)`);
     }
 
-    private addVirtualObstacle(position: THREE.Vector2, radius: number): void {
-        this.virtualObstacles.push({ position, radius });
-        this.simulator.addObstacle(position, radius);
+    public resetLevel(): void {
+        if (!this.currentLevel) {
+            this.resetSimulationState();
+            return;
+        }
+
+        const startPos = this.currentLevel.environment.start.position;
+        const startRot = this.currentLevel.environment.start.rotation;
+
+        this.virtualPosition.set(startPos.x, startPos.y);
+        if (this.simulator.robotModel) {
+            this.simulator.robotModel.position.set(startPos.x, 0, startPos.y);
+            this.simulator.robotModel.rotation.set(0, startRot, 0);
+        }
+
+        const checkpoints = this.currentLevel.environment.checkpoints;
+        this.currentCheckpointIndex = 0;
+        this.checkpointReachedFlags = new Array(checkpoints.length).fill(false);
+
+        if (checkpoints.length > 0) {
+            this.simulator.addFinishZone(checkpoints[0]);
+        }
+
+        console.log(`Robot reset to start: (${startPos.x}, ${startPos.y}), rotation: ${startRot}`);
+    }
+
+    public checkWinCondition(): boolean {
+        if (!this.currentLevel) return false;
+
+        const checkpoints = this.currentLevel.environment.checkpoints;
+        if (this.currentCheckpointIndex >= checkpoints.length) {
+            return true;
+        }
+
+        const currentCheckpoint = checkpoints[this.currentCheckpointIndex];
+        const checkpointPos = new THREE.Vector2(currentCheckpoint.position.x, currentCheckpoint.position.y);
+        const type = currentCheckpoint.type || 'circle';
+
+        let isInCheckpoint = false;
+
+        if (type === 'rectangle') {
+            const halfWidth = (currentCheckpoint.width || 1) / 2;
+            const halfHeight = (currentCheckpoint.height || 1) / 2;
+            
+            const dx = Math.abs(this.virtualPosition.x - checkpointPos.x);
+            const dy = Math.abs(this.virtualPosition.y - checkpointPos.y);
+            
+            isInCheckpoint = dx <= halfWidth && dy <= halfHeight;
+
+        } else {
+            const distance = this.virtualPosition.distanceTo(checkpointPos);
+            isInCheckpoint = distance <= (currentCheckpoint.radius || 0.6);
+        }
+
+        if (isInCheckpoint && !this.checkpointReachedFlags[this.currentCheckpointIndex]) {
+            this.checkpointReachedFlags[this.currentCheckpointIndex] = true;
+            this.currentCheckpointIndex++;
+
+            console.log(`✓ Checkpoint ${this.currentCheckpointIndex}/${checkpoints.length} reached!`);
+
+            if (this.currentCheckpointIndex < checkpoints.length) {
+                this.simulator.addFinishZone(checkpoints[this.currentCheckpointIndex]);
+                console.log(`→ Next checkpoint loaded at (${checkpoints[this.currentCheckpointIndex].position.x}, ${checkpoints[this.currentCheckpointIndex].position.y})`);
+                return false;
+            } else {
+                console.log(`✓ All ${checkpoints.length} checkpoints reached! Level complete!`);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public getChallengeMetrics(): ChallengeMetrics | null {
+        return this.challengeMetrics;
+    }
+
+    public startChallengeRun(attemptNumber: number): void {
+        this.challengeMetrics = {
+            startTime: performance.now(),
+            endTime: 0,
+            collisionCount: 0,
+            attemptNumber: attemptNumber,
+            completed: false,
+            finalDistance: undefined
+        };
+        console.log(`Challenge run started - Attempt #${attemptNumber}`);
+    }
+
+    public endChallengeRun(completed: boolean): void {
+        if (!this.challengeMetrics) return;
+
+        this.challengeMetrics.endTime = performance.now();
+        this.challengeMetrics.completed = completed;
+
+        if (this.currentLevel) {
+            const checkpoints = this.currentLevel.environment.checkpoints;
+            if (checkpoints.length > 0) {
+                const finalCheckpoint = checkpoints[checkpoints.length - 1];
+                const finalPos = new THREE.Vector2(finalCheckpoint.position.x, finalCheckpoint.position.y);
+                this.challengeMetrics.finalDistance = this.virtualPosition.distanceTo(finalPos);
+            }
+        }
+
+        const elapsedMs = this.challengeMetrics.endTime - this.challengeMetrics.startTime;
+        console.log(`Challenge run ended - Completed: ${completed}, Time: ${(elapsedMs / 1000).toFixed(2)}s, Collisions: ${this.challengeMetrics.collisionCount}`);
+    }
+
+    public exitChallengeMode(): void {
+        this.isChallengeMode = false;
+        this.currentLevel = null;
+        this.challengeMetrics = null;
+        this.simulator.clearFinishZone();
+        this.setupEnvironment();
+        console.log('Exited challenge mode, restored sandbox environment');
+    }
+
+    // --- Environment & General Helpers ---
+    private setupEnvironment(): void {
+        this.simulator.clearLevel();
+        this.simulator.clearFinishZone();
+        this.levelObjects = [];
+        
+        this.addLevelObject({ type: 'circle', position: { x: 0, y: 3 }, radius: 0.5 });
+        this.addLevelObject({ type: 'circle', position: { x: 0, y: -3 }, radius: 0.5 });
+        this.addLevelObject({ type: 'circle', position: { x: 2, y: 5 }, radius: 0.7 });
+        this.addLevelObject({ type: 'circle', position: { x: -4, y: 4 }, radius: 1.0 });
+    }
+
+    private addLevelObject(objData: any): void {
+        const position = new THREE.Vector2(objData.position.x, objData.position.y);
+        
+        if (objData.type === 'circle') {
+            this.levelObjects.push({
+                type: 'circle',
+                position,
+                radius: objData.radius
+            });
+        } else if (objData.type === 'rectangle') {
+            this.levelObjects.push({
+                type: 'rectangle',
+                position,
+                width: objData.width,
+                height: objData.height
+            });
+        }
+        
+        this.simulator.addLevelObject(objData);
     }
 
     private stopAllMovement(): void {

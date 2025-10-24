@@ -7,10 +7,22 @@ import { SOUND_MAPPING } from './sound_profile';
 export const ROBOT_LINEAR_RADIUS = 0.4;
 export const ROBOT_TURNING_RADIUS = 0.48;
 
-interface VirtualObstacle {
+interface VirtualObject {
+  mesh: THREE.Mesh;
+  type: 'circle' | 'rectangle';
+  virtualPosition: THREE.Vector2;
+  radius?: number;
+  width?: number;
+  height?: number;
+}
+
+interface FinishZone {
   mesh: THREE.Mesh;
   virtualPosition: THREE.Vector2;
-  radius: number;
+  type: 'circle' | 'rectangle';
+  radius?: number;
+  width?: number;
+  height?: number;
 }
 
 export class Simulator {
@@ -26,7 +38,8 @@ export class Simulator {
   private leds: THREE.Mesh[] = [];
   private iconTextures: Map<string, THREE.Texture> = new Map();
   private sounds: Map<number, HTMLAudioElement> = new Map();
-  private obstacles: VirtualObstacle[] = [];
+  private levelObjects: VirtualObject[] = [];
+  private finishZone: FinishZone | null = null;
   private resizeObserver: ResizeObserver;
   private targetHeadRotation: THREE.Euler = new THREE.Euler();
   private readonly headLerpFactor = 0.02;
@@ -254,18 +267,155 @@ export class Simulator {
   }
 
   // --- Public Method (Environment Control) ---
-  public addObstacle(virtualPosition: THREE.Vector2, radius: number): void {
-    const geometry = new THREE.CylinderGeometry(radius, radius, 1, 16);
-    const material = new THREE.MeshStandardMaterial({ color: 0xff4444 });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.y = 0.5;
-    this.scene.add(mesh);
-    this.obstacles.push({ mesh, virtualPosition, radius });
+  public addLevelObject(objData: any): void {
+    let geometry: THREE.BufferGeometry;
+    let material: THREE.Material;
+    
+    const virtualPosition = new THREE.Vector2(objData.position.x, objData.position.y);
+    const textureLoader = new THREE.TextureLoader();
+
+    if (objData.type === 'circle') {
+        const colorMap = textureLoader.load('rocks_ground_09_diff_2k.jpg');
+        
+        colorMap.colorSpace = THREE.SRGBColorSpace;
+        colorMap.wrapS = colorMap.wrapT = THREE.RepeatWrapping;
+        colorMap.repeat.set(2, 2);
+        
+        material = new THREE.MeshBasicMaterial({ 
+          map: colorMap,
+          color: 0xcccccc
+        });
+        
+        const radius = objData.radius || 0.5;
+        geometry = new THREE.CylinderGeometry(radius, radius, 1, 32);
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.y = 0.5;
+        this.scene.add(mesh);
+        this.levelObjects.push({ mesh, type: 'circle', virtualPosition, radius });
+
+    } else if (objData.type === 'rectangle') {
+        const colorMap = textureLoader.load('plastered_wall_05_diff_2k.jpg');
+        
+        colorMap.colorSpace = THREE.SRGBColorSpace;
+        colorMap.wrapS = colorMap.wrapT = THREE.RepeatWrapping;
+        colorMap.repeat.set(2, 1);
+        
+        material = new THREE.MeshBasicMaterial({ 
+          map: colorMap,
+          color: 0xFFFFFF,
+          side: THREE.DoubleSide
+        });
+        
+        const width = objData.width || 1;
+        const height = objData.height || 1;
+        geometry = new THREE.BoxGeometry(width, 1, height);
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.y = 0.5;
+        this.scene.add(mesh);
+        this.levelObjects.push({ mesh, type: 'rectangle', virtualPosition, width, height });
+    }
+  }
+
+  public addFinishZone(checkpointData: { type?: 'circle' | 'rectangle'; position: { x: number; y: number }; radius?: number; width?: number; height?: number }): void {
+    this.clearFinishZone();
+
+    const virtualPosition = new THREE.Vector2(checkpointData.position.x, checkpointData.position.y);
+    const type = checkpointData.type || 'circle';
+
+    let geometry: THREE.BufferGeometry;
+    let mesh: THREE.Mesh;
+
+    if (type === 'rectangle') {
+      const width = checkpointData.width || 1;
+      const height = checkpointData.height || 1;
+      
+      geometry = new THREE.BoxGeometry(width, 0.1, height);
+      const material = new THREE.MeshStandardMaterial({
+        color: 0x00ff00,
+        emissive: 0x00ff00,
+        emissiveIntensity: 0.5,
+        transparent: true,
+        opacity: 0.6,
+        metalness: 0.3,
+        roughness: 0.7
+      });
+      mesh = new THREE.Mesh(geometry, material);
+      mesh.position.y = 0.05;
+      this.scene.add(mesh);
+
+      const borderGeometry = new THREE.EdgesGeometry(geometry);
+      const borderMaterial = new THREE.LineBasicMaterial({ 
+        color: 0x00ff88,
+        linewidth: 2
+      });
+      const border = new THREE.LineSegments(borderGeometry, borderMaterial);
+      border.position.y = 0.11;
+      mesh.add(border);
+
+      const pulseAnimation = () => {
+        const time = Date.now() * 0.002;
+        material.emissiveIntensity = 0.3 + Math.sin(time) * 0.2;
+        material.opacity = 0.4 + Math.sin(time * 1.5) * 0.2;
+      };
+      (mesh as any).pulseAnimation = pulseAnimation;
+
+      this.finishZone = { mesh, virtualPosition, type: 'rectangle', width, height };
+
+    } else {
+      const radius = checkpointData.radius || 0.6;
+      
+      geometry = new THREE.CylinderGeometry(radius, radius, 0.1, 32);
+      const material = new THREE.MeshStandardMaterial({
+        color: 0x00ff00,
+        emissive: 0x00ff00,
+        emissiveIntensity: 0.5,
+        transparent: true,
+        opacity: 0.6,
+        metalness: 0.3,
+        roughness: 0.7
+      });
+      mesh = new THREE.Mesh(geometry, material);
+      mesh.position.y = 0.05;
+      this.scene.add(mesh);
+
+      const ringGeometry = new THREE.RingGeometry(radius - 0.05, radius + 0.05, 32);
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ff88,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.8
+      });
+      const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.11;
+      mesh.add(ring);
+
+      const pulseAnimation = () => {
+        const time = Date.now() * 0.002;
+        material.emissiveIntensity = 0.3 + Math.sin(time) * 0.2;
+        ringMaterial.opacity = 0.6 + Math.sin(time * 1.5) * 0.2;
+      };
+      (mesh as any).pulseAnimation = pulseAnimation;
+
+      this.finishZone = { mesh, virtualPosition, type: 'circle', radius };
+    }
+  }
+
+  public clearFinishZone(): void {
+    if (this.finishZone) {
+        this.scene.remove(this.finishZone.mesh);
+      this.finishZone = null;
+    }
   }
 
   public clearObstacles(): void {
-      this.obstacles.forEach(obs => this.scene.remove(obs.mesh));
-      this.obstacles = [];
+      this.levelObjects.forEach(obj => this.scene.remove(obj.mesh));
+      this.levelObjects = [];
+  }
+
+  public clearLevel(): void {
+      this.levelObjects.forEach(obj => this.scene.remove(obj.mesh));
+      this.levelObjects = [];
   }
 
   public toggleCollisionHelpers(visible: boolean): void {
@@ -281,6 +431,10 @@ export class Simulator {
 
     if (this.sequencerVirtualPosition) {
         this.updateEnvironment(this.sequencerVirtualPosition);
+    }
+
+    if (this.finishZone && (this.finishZone.mesh as any).pulseAnimation) {
+      (this.finishZone.mesh as any).pulseAnimation();
     }
 
     if (this.head) {
@@ -306,11 +460,17 @@ export class Simulator {
       this.groundMaterial.roughnessMap?.offset.set(textureOffset.x, -textureOffset.y);
     }
 
-    this.obstacles.forEach(obs => {
-      const relativePos = obs.virtualPosition.clone().sub(robotVirtualPosition);
-      obs.mesh.position.x = relativePos.x;
-      obs.mesh.position.z = relativePos.y;
+    this.levelObjects.forEach(obj => {
+      const relativePos = obj.virtualPosition.clone().sub(robotVirtualPosition);
+      obj.mesh.position.x = relativePos.x;
+      obj.mesh.position.z = relativePos.y;
     });
+
+    if (this.finishZone) {
+      const relativePos = this.finishZone.virtualPosition.clone().sub(robotVirtualPosition);
+      this.finishZone.mesh.position.x = relativePos.x;
+      this.finishZone.mesh.position.z = relativePos.y;
+    }
   }
 
   private _preloadAssets(): void {
