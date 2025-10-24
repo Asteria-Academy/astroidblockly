@@ -22,11 +22,13 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Project> _projects = [];
   bool _isLoading = true;
 
+  final _audioCache = AudioCache(prefix: 'assets/sounds/');
+
   late final AudioPlayer _bubblePointOnePlayer;
   late final AudioPlayer _bubblePointTwoPlayer;
 
-  static const String _bubblePointOneAsset = 'assets/sounds/Bubble_Point_1.wav';
-  static const String _bubblePointTwoAsset = 'assets/sounds/Bubble_Point_2.wav';
+  static const String _bubblePointOneAsset = 'Bubble_Point_1.wav';
+  static const String _bubblePointTwoAsset = 'Bubble_Point_2.wav';
 
   @override
   void initState() {
@@ -35,6 +37,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _bubblePointTwoPlayer = AudioPlayer();
     unawaited(_bubblePointOnePlayer.setPlayerMode(PlayerMode.lowLatency));
     unawaited(_bubblePointTwoPlayer.setPlayerMode(PlayerMode.lowLatency));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_audioCache.load(_bubblePointOneAsset));
+      unawaited(_audioCache.load(_bubblePointTwoAsset));
+      debugPrint("Audio files have been pre-cached to the device.");
+    });
   }
 
   Future<void> _playBubblePointOne() =>
@@ -43,12 +51,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _playBubblePointTwo() =>
       _playSound(_bubblePointTwoPlayer, _bubblePointTwoAsset);
 
-  Future<void> _playSound(AudioPlayer player, String assetPath) async {
+  Future<void> _playSound(AudioPlayer player, String fileName) async {
     try {
+      final file = await _audioCache.loadAsFile(fileName);
+
       await player.stop();
-      await player.play(AssetSource(assetPath));
+      await player.play(DeviceFileSource(file.path));
     } catch (e) {
-      debugPrint('Failed to play sound effect ($assetPath): $e');
+      debugPrint('Failed to play sound effect ($fileName): $e');
     }
   }
 
