@@ -38,6 +38,22 @@ class _HomeScreenState extends State<HomeScreen> {
     unawaited(_bubblePointOnePlayer.setPlayerMode(PlayerMode.lowLatency));
     unawaited(_bubblePointTwoPlayer.setPlayerMode(PlayerMode.lowLatency));
 
+    final audioContext = AudioContext(
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.ambient,
+        options: {AVAudioSessionOptions.mixWithOthers},
+      ),
+      android: AudioContextAndroid(
+        isSpeakerphoneOn: false,
+        stayAwake: false,
+        contentType: AndroidContentType.sonification,
+        usageType: AndroidUsageType.media,
+        audioFocus: AndroidAudioFocus.none,
+      ),
+    );
+    unawaited(_bubblePointOnePlayer.setAudioContext(audioContext));
+    unawaited(_bubblePointTwoPlayer.setAudioContext(audioContext));
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_audioCache.load(_bubblePointOneAsset));
       unawaited(_audioCache.load(_bubblePointTwoAsset));

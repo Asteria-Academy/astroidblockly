@@ -1,11 +1,13 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
-class BackgroundMusicService {
+class BackgroundMusicService with WidgetsBindingObserver {
   static final BackgroundMusicService _instance =
       BackgroundMusicService._internal();
   factory BackgroundMusicService() => _instance;
-  BackgroundMusicService._internal();
+  BackgroundMusicService._internal() {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isPlaying = false;
@@ -15,12 +17,43 @@ class BackgroundMusicService {
 
     try {
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-      await _audioPlayer.setVolume(0.3);
+      await _audioPlayer.setVolume(0.2);
+      await _audioPlayer.setAudioContext(
+        AudioContext(
+          iOS: AudioContextIOS(
+            category: AVAudioSessionCategory.ambient,
+            options: {AVAudioSessionOptions.mixWithOthers},
+          ),
+          android: AudioContextAndroid(
+            isSpeakerphoneOn: false,
+            stayAwake: false,
+            contentType: AndroidContentType.music,
+            usageType: AndroidUsageType.media,
+            audioFocus: AndroidAudioFocus.gain,
+          ),
+        ),
+      );
       await _audioPlayer.play(AssetSource('sounds/Fluffy_Clouds.mp3'));
       _isPlaying = true;
       debugPrint('🎵 Background music started');
     } catch (e) {
       debugPrint('❌ Error starting background music: $e');
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        pauseBackgroundMusic();
+        break;
+      case AppLifecycleState.resumed:
+        resumeBackgroundMusic();
+        break;
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        break;
     }
   }
 
@@ -69,6 +102,7 @@ class BackgroundMusicService {
   bool get isPlaying => _isPlaying;
 
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _audioPlayer.dispose();
   }
 }

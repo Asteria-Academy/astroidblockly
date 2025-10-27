@@ -190,45 +190,73 @@ function initializeDefaultProjects() {
             movable: false,
             next: {
               block: {
-                type: 'controls_repeat_ext',
-                fields: { TIMES: 10 },
-                inputs: {
-                  DO: {
-                    block: {
-                      type: 'led_rgb',
-                      fields: {
-                        RED: 255,
-                        GREEN: 0,
-                        BLUE: 0
-                      },
-                      next: {
-                        block: {
-                          type: 'time_delay',
-                          fields: { DELAY: 500 },
-                          next: {
-                            block: {
-                              type: 'led_rgb',
-                              fields: {
-                                RED: 0,
-                                GREEN: 255,
-                                BLUE: 0
-                              },
-                              next: {
-                                block: {
-                                  type: 'time_delay',
-                                  fields: { DELAY: 500 },
-                                  next: {
-                                    block: {
-                                      type: 'led_rgb',
-                                      fields: {
-                                        RED: 0,
-                                        GREEN: 0,
-                                        BLUE: 255
-                                      },
-                                      next: {
-                                        block: {
-                                          type: 'time_delay',
-                                          fields: { DELAY: 500 }
+                type: 'looks_set_single_led',
+                id: 'led1',
+                fields: { LED_ID: 1, COLOR: '#0800ff' },
+                next: {
+                  block: {
+                    type: 'looks_set_single_led',
+                    id: 'led2',
+                    fields: { LED_ID: 2, COLOR: '#8800ff' },
+                    next: {
+                      block: {
+                        type: 'looks_set_single_led',
+                        id: 'led3',
+                        fields: { LED_ID: 3, COLOR: '#ff00f7' },
+                        next: {
+                          block: {
+                            type: 'looks_set_single_led',
+                            id: 'led4',
+                            fields: { LED_ID: 4, COLOR: '#ff0077' },
+                            next: {
+                              block: {
+                                type: 'looks_set_single_led',
+                                id: 'led5',
+                                fields: { LED_ID: 5, COLOR: '#ff0900' },
+                                next: {
+                                  block: {
+                                    type: 'looks_set_single_led',
+                                    id: 'led6',
+                                    fields: { LED_ID: 6, COLOR: '#ff8800' },
+                                    next: {
+                                      block: {
+                                        type: 'looks_set_single_led',
+                                        id: 'led7',
+                                        fields: { LED_ID: 7, COLOR: '#f7ff00' },
+                                        next: {
+                                          block: {
+                                            type: 'looks_set_single_led',
+                                            id: 'led8',
+                                            fields: { LED_ID: 8, COLOR: '#77ff00' },
+                                            next: {
+                                              block: {
+                                                type: 'looks_set_single_led',
+                                                id: 'led9',
+                                                fields: { LED_ID: 9, COLOR: '#00ff08' },
+                                                next: {
+                                                  block: {
+                                                    type: 'looks_set_single_led',
+                                                    id: 'led10',
+                                                    fields: { LED_ID: 10, COLOR: '#00ff88' },
+                                                    next: {
+                                                      block: {
+                                                        type: 'looks_set_single_led',
+                                                        id: 'led11',
+                                                        fields: { LED_ID: 11, COLOR: '#00f7ff' },
+                                                        next: {
+                                                          block: {
+                                                            type: 'looks_set_single_led',
+                                                            id: 'led12',
+                                                            fields: { LED_ID: 12, COLOR: '#0077ff' }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
                                         }
                                       }
                                     }
@@ -250,7 +278,7 @@ function initializeDefaultProjects() {
     },
     thumbnail_data: null
   };
-  
+
   // Project 2: Obstacle Detection
   const obstacleDetectionProject = {
     id: `proj-${now + 1}`,
@@ -269,27 +297,32 @@ function initializeDefaultProjects() {
             movable: false,
             next: {
               block: {
-                type: 'controls_repeat_ext',
-                fields: { TIMES: 100 },
+                type: 'controls_forever',
+                id: 'forever_loop',
                 inputs: {
                   DO: {
                     block: {
                       type: 'controls_if',
+                      id: 'if_obstacle',
+                      extraState: { hasElse: true },
                       inputs: {
                         IF0: {
                           block: {
                             type: 'logic_compare',
+                            id: 'compare_distance',
                             fields: { OP: 'LT' },
                             inputs: {
                               A: {
                                 block: {
-                                  type: 'sensor_ultrasonic'
+                                  type: 'sensor_get_distance',
+                                  id: 'ultrasonic_sensor'
                                 }
                               },
                               B: {
                                 block: {
                                   type: 'math_number',
-                                  fields: { NUM: 20 }
+                                  id: 'threshold_distance',
+                                  fields: { NUM: 0.4 }
                                 }
                               }
                             }
@@ -297,55 +330,34 @@ function initializeDefaultProjects() {
                         },
                         DO0: {
                           block: {
-                            type: 'motor_stop',
-                            next: {
-                              block: {
-                                type: 'sound_buzzer',
-                                fields: {
-                                  FREQUENCY: 1000,
-                                  DURATION: 200
-                                },
-                                next: {
-                                  block: {
-                                    type: 'motor_backward',
-                                    fields: {
-                                      LEFT_SPEED: 150,
-                                      RIGHT_SPEED: 150
-                                    },
-                                    next: {
-                                      block: {
-                                        type: 'time_delay',
-                                        fields: { DELAY: 500 },
-                                        next: {
-                                          block: {
-                                            type: 'motor_turn_right',
-                                            fields: {
-                                              LEFT_SPEED: 150,
-                                              RIGHT_SPEED: 150
-                                            },
-                                            next: {
-                                              block: {
-                                                type: 'time_delay',
-                                                fields: { DELAY: 500 }
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
+                            type: 'motor_turn_timed',
+                            id: 'turn_left',
+                            fields: { DIRECTION: 'left', SPEED: 50 },
+                            inputs: {
+                              DURATION: {
+                                shadow: {
+                                  type: 'math_number',
+                                  id: 'turn_duration',
+                                  fields: { NUM: 1 }
                                 }
                               }
                             }
                           }
-                        }
-                      },
-                      next: {
-                        block: {
-                          type: 'motor_forward',
-                          fields: {
-                            LEFT_SPEED: 150,
-                            RIGHT_SPEED: 150
+                        },
+                        ELSE: {
+                          block: {
+                            type: 'motor_move_timed',
+                            id: 'move_forward',
+                            fields: { DIRECTION: 'forward', SPEED: 100 },
+                            inputs: {
+                              DURATION: {
+                                shadow: {
+                                  type: 'math_number',
+                                  id: 'move_duration',
+                                  fields: { NUM: 0.25 }
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -375,7 +387,6 @@ document.addEventListener('pointermove', (event: PointerEvent) => {
 });
 
 backButton?.addEventListener('click', () => {
-  // Clear active challenge state when navigating back to home
   localStorage.removeItem('astroid_active_challenge');
   console.log('Cleared active challenge state on back navigation');
   
@@ -822,13 +833,16 @@ async function generateWorkspaceThumbnail(): Promise<string | null> {
 
 (window as any).getProjectList = function () {
   const data = getProjectsData();
+  console.log(`getProjectList called - Found ${data.projects.length} projects`);
   const projectList = data.projects.map((p: Project) => ({
     id: p.id,
     name: p.name,
     last_modified: p.last_modified,
     thumbnail_data: p.thumbnail_data ?? null
   }));
-  return JSON.stringify(projectList);
+  const result = JSON.stringify(projectList);
+  console.log('Returning project list:', result.substring(0, 200) + '...');
+  return result;
 };
 
 (window as any).deleteProject = function (projectId: string) {
@@ -1228,8 +1242,10 @@ function initializeWorkspace() {
             const won = sequencer?.checkWinCondition() || false;
             sequencer?.endChallengeRun(won);
             
+            // Always stop timer when simulation ends
+            stopMetricsTimer();
+            
             if (won) {
-              stopMetricsTimer();
               (window as any).challengeWon = true; // Mark as won
               evaluateChallengeStars(sequencer);
             }
@@ -1418,7 +1434,11 @@ function updateChallengeMetrics() {
   const challengeMetrics = (window as any).challengeMetrics;
   if (!challengeMetrics) return;
 
-  const elapsedTime = Math.floor((Date.now() - challengeMetrics.startTime) / 1000);
+  let elapsedTime = challengeMetrics.accumulatedTime || 0;
+  if (challengeMetrics.currentRunStartTime) {
+    elapsedTime += Math.floor((Date.now() - challengeMetrics.currentRunStartTime) / 1000);
+  }
+  
   const minutes = Math.floor(elapsedTime / 60);
   const seconds = elapsedTime % 60;
   const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -1446,23 +1466,39 @@ function updateChallengeMetrics() {
 }
 
 function startMetricsTimer() {
+  if (!(window as any).challengeMetrics) {
+    (window as any).challengeMetrics = {
+      accumulatedTime: 0,
+      currentRunStartTime: null
+    };
+  }
+  
+  const metrics = (window as any).challengeMetrics;
+  
+  metrics.currentRunStartTime = Date.now();
+  
   if ((window as any).metricsInterval) {
     clearInterval((window as any).metricsInterval);
   }
-  
-  (window as any).challengeMetrics = {
-    startTime: Date.now()
-  };
-  
   (window as any).metricsInterval = setInterval(updateChallengeMetrics, 100);
   updateChallengeMetrics();
 }
 
 function stopMetricsTimer() {
+  const metrics = (window as any).challengeMetrics;
+  
+  if (metrics && metrics.currentRunStartTime) {
+    const currentRunTime = Math.floor((Date.now() - metrics.currentRunStartTime) / 1000);
+    metrics.accumulatedTime = (metrics.accumulatedTime || 0) + currentRunTime;
+    metrics.currentRunStartTime = null;
+  }
+  
   if ((window as any).metricsInterval) {
     clearInterval((window as any).metricsInterval);
     (window as any).metricsInterval = null;
   }
+  
+  updateChallengeMetrics();
 }
 
 function createStarConditionsPanel(level: any) {

@@ -74,15 +74,14 @@ javascriptGenerator.forBlock['looks_set_all_leds'] = function(block, _generator)
 };
 
 javascriptGenerator.forBlock['looks_set_single_led'] = function(block, _generator) {
-  const ledId_1_indexed = parseInt(block.getFieldValue('LED_ID') || '1', 10);
-  const ledId_0_indexed = ledId_1_indexed - 1;
+  const ledId = parseInt(block.getFieldValue('LED_ID') || '1', 10);
 
   const color = block.getFieldValue('COLOR') || '#ffffff';
   const { r, g, b } = hexToRgb(color);
   
   const commandObj = {
     command: astroidV2.commands.setLedColor,
-    params: { led_id: ledId_0_indexed, r, g, b }
+    params: { led_id: ledId, r, g, b }
   };
   return JSON.stringify(commandObj) + ';';
 };

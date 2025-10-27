@@ -195,8 +195,8 @@ export class Simulator {
   public setHeadPosition(pitch: number, yaw: number): void {
     if (!this.head) return;
     
-    const clampedPitch = Math.max(75, Math.min(105, pitch));
-    const clampedYaw = Math.max(20, Math.min(170, yaw));
+    const clampedPitch = Math.max(80, Math.min(100, pitch));
+    const clampedYaw = Math.max(80, Math.min(100, yaw));
 
     this.targetHeadRotation.x = THREE.MathUtils.degToRad(clampedPitch - 90);
     this.targetHeadRotation.y = THREE.MathUtils.degToRad(clampedYaw - 90);
@@ -212,8 +212,12 @@ export class Simulator {
 
     if (ledId === 'all') {
         this.leds.forEach(applyColor);
-    } else if (this.leds[ledId]) {
-        applyColor(this.leds[ledId]);
+    } else {
+        // Convert 1-indexed to 0-indexed for array access
+        const ledIndex = ledId - 1;
+        if (this.leds[ledIndex]) {
+            applyColor(this.leds[ledIndex]);
+        }
     }
   }
 

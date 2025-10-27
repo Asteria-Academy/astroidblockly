@@ -263,7 +263,7 @@ class BluetoothService with ChangeNotifier {
 
   void _startBatteryMonitor() {
     _batteryTimer?.cancel();
-    _batteryTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    _batteryTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
       if (isConnected) {
         sendCommand('{"command":"GET_BATTERY_STATUS","params":{}}');
       } else {
