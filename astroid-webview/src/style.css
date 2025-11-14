@@ -300,7 +300,7 @@ body {
 
 .floating-toolbar {
 	position: absolute;
-	top: 112px;
+	top: 24px;
 	right: 24px;
 	width: 120px;
 	background: var(--panel-bg);
@@ -529,8 +529,8 @@ input:checked + .slider::before {
 	position: absolute;
 	bottom: 24px;
 	right: 24px;
-	width: 360px;
-	height: 240px;
+	width: 400px;
+	height: 267px;
 	max-width: calc(100vw - 32px);
 	max-height: calc(100vh - 48px);
 	border-radius: 22px;
@@ -715,6 +715,10 @@ input:checked + .slider::before {
 	font-weight: 600;
 }
 
+.blocklyToolboxCategory:not(.blockly-tree-selected):hover {
+	background-color: var(--category-hover-color, rgba(255, 255, 255, 0.2)) !important;
+}
+
 .blocklyTreeLabel {
 	font-size: 13px !important;
 	font-weight: 500;
@@ -729,6 +733,43 @@ input:checked + .slider::before {
 
 .blocklyToolboxCategoryLabel {
 	font: 500 9pt sans-serif !important;
+}
+
+.categoryBubble {
+  margin: 0 auto 4px;
+  border-radius: 100%;
+  border: 1px solid;
+  width: 16px;
+  height: 16px;
+}
+.blocklyToolboxCategory {
+  height: initial;
+  padding: 3px 0;
+}
+.blocklyTreeRowContentContainer {
+  display: flex;
+  flex-direction: column;
+}
+.blocklyTreeLabel {
+  margin: auto;
+  font-size: 11px;
+}
+.blocklyToolboxCategoryLabel {
+  text-align: center;
+}
+
+.blocklyFlyoutBackground {
+  fill: var(--flyout-bg-color, rgba(60, 64, 72, 0.8)) !important;
+}
+
+.blocklyFlyout {
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.blocklyToolboxCategoryContainer:focus-visible,
+.blocklyPassiveFocus:focus-visible {
+  outline: none !important;
 }
 
 @keyframes indicatorPulse {
@@ -751,16 +792,16 @@ input:checked + .slider::before {
 
 @media (max-width: 960px) {
 	.floating-toolbar {
-		top: 96px;
+		top: 8px;
 		right: 16px;
 		width: 112px;
 	}
 
 	.simulator-container {
-		width: 300px;
-		height: 210px;
+		width: 240px;
+		height: 177px;
 		bottom: 18px;
-		right: 18px;
+		right: 140px;
 	}
 }
 

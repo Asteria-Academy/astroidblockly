@@ -2,7 +2,7 @@
 
 import * as Blockly from 'blockly/core';
 import { javascriptGenerator } from 'blockly/javascript';
-import { ContinuousToolbox, ContinuousFlyout, registerContinuousToolbox } from '@blockly/continuous-toolbox';
+import { ContinuousCategory } from '@blockly/continuous-toolbox';
 
 import { getAstroidToolbox } from './toolbox';
 import { getAstroidTheme } from './visual/theme';
@@ -434,7 +434,7 @@ makeDraggable(floatingToolbar, toolbarGrip);
 makeDraggable(simulatorContainerElement, simulatorHeader, {
   shouldIgnore: () => simulatorContainerElement?.classList.contains('fullscreen') ?? false
 });
-makeResizable(simulatorContainerElement, simulatorResizeHandle);
+makeResizable(simulatorContainerElement, simulatorResizeHandle, simulatorHeader);
 
 viewerToggle?.addEventListener('click', () => {
   toggleViewerVisibility(!isViewerVisible);
@@ -576,7 +576,6 @@ function toggleViewerVisibility(visible: boolean) {
         clearStoredBounds(simulatorContainer);
       }
       
-      // Toggle challenge metrics visibility back to top bar when exiting fullscreen
       if ((window as any).isChallengeMode) {
         const challengeMetrics = document.getElementById('challenge-metrics');
         const challengeMetricsFullscreen = document.getElementById('challenge-metrics-fullscreen');
@@ -585,7 +584,6 @@ function toggleViewerVisibility(visible: boolean) {
       }
     }
     
-    // Always hide fullscreen metrics when minimizing the viewer
     if ((window as any).isChallengeMode) {
       const challengeMetricsFullscreen = document.getElementById('challenge-metrics-fullscreen');
       challengeMetricsFullscreen?.style.setProperty('display', 'none');
@@ -685,10 +683,12 @@ function makeDraggable(element: HTMLElement | null, handle: HTMLElement | null, 
   });
 }
 
-function makeResizable(element: HTMLElement | null, handle: HTMLElement | null) {
-  if (!element || !handle) {
+function makeResizable(element: HTMLElement | null, handle: HTMLElement | null, header: HTMLElement | null) {
+  if (!element || !handle || !header) {
     return;
   }
+
+  const ASPECT_RATIO = 16 / 9;
 
   handle.addEventListener('pointerdown', (event: PointerEvent) => {
     if (element.classList.contains('fullscreen')) {
@@ -696,22 +696,24 @@ function makeResizable(element: HTMLElement | null, handle: HTMLElement | null) 
     }
 
     event.preventDefault();
-    const startRect = element.getBoundingClientRect();
+    
+    const measuredHeaderHeight = header.offsetHeight;
+
+    const startWidth = element.offsetWidth;
     const startX = event.clientX;
-    const startY = event.clientY;
 
     const onPointerMove = (moveEvent: PointerEvent) => {
       const deltaX = moveEvent.clientX - startX;
-      const deltaY = moveEvent.clientY - startY;
 
-      const minWidth = 260;
-      const minHeight = 180;
+      const minWidth = 200;
+      const maxWidth = window.innerWidth - element.getBoundingClientRect().left - 16;
 
-      let newWidth = Math.max(minWidth, startRect.width + deltaX);
-      let newHeight = Math.max(minHeight, startRect.height + deltaY);
-
-      newWidth = Math.min(newWidth, window.innerWidth - startRect.left - 16);
-      newHeight = Math.min(newHeight, window.innerHeight - startRect.top - 16);
+      let newWidth = Math.max(minWidth, startWidth + deltaX);
+      newWidth = Math.min(newWidth, maxWidth);
+      
+      const newCanvasHeight = newWidth / ASPECT_RATIO;
+      
+      const newHeight = newCanvasHeight + measuredHeaderHeight;
 
       element.style.width = `${newWidth}px`;
       element.style.height = `${newHeight}px`;
@@ -728,8 +730,6 @@ function makeResizable(element: HTMLElement | null, handle: HTMLElement | null) 
     document.addEventListener('pointerup', onPointerUp);
   });
 }
-
-
 
 async function generateWorkspaceThumbnail(): Promise<string | null> {
   if (!primaryWorkspace) {
@@ -901,6 +901,15 @@ async function generateWorkspaceThumbnail(): Promise<string | null> {
   return progress || '{}';
 };
 
+function registerCustomToolboxComponents() {
+  Blockly.registry.register(
+    Blockly.registry.Type.TOOLBOX_ITEM,
+    Blockly.ToolboxCategory.registrationName,
+    ContinuousCategory,
+    true
+  );
+}
+
 function initializeWorkspace() {
   if (!blocklyDiv || !playButton || !btStatusButton) {
     throw new Error('Required DOM elements not found!');
@@ -929,7 +938,7 @@ function initializeWorkspace() {
     console.log(`Debug collision helpers are now ${debugVisible ? 'ON' : 'OFF'}`);
   };
 
-  registerContinuousToolbox();
+  registerCustomToolboxComponents();
 
   const workspaceConfig: Blockly.BlocklyOptions = {
     theme: getAstroidTheme(),
@@ -940,22 +949,48 @@ function initializeWorkspace() {
     zoom: { controls: false, wheel: true, startScale: 0.5, maxScale: 1.25, minScale: 0.4, scaleSpeed: 1.05 },
     grid: { spacing: 20, length: 3, colour: '#444', snap: true },
     move: { scrollbars: true, drag: true, wheel: true },
-    plugins: {
-      toolbox: ContinuousToolbox,
-      flyoutsVerticalToolbox: ContinuousFlyout,
-    },
   };
 
   primaryWorkspace = Blockly.inject(blocklyDiv, workspaceConfig);
 
-  // Listen to workspace changes to update block count in real-time during challenge mode
+  primaryWorkspace.addChangeListener((event: Blockly.Events.Abstract) => {
+    if (event.type === Blockly.Events.TOOLBOX_ITEM_SELECT) {
+      const selectEvent = event as any;
+      const categoryName = selectEvent.newItem;
+      
+      const categoryColors: { [key: string]: string } = {
+        'Motion': 'rgba(8, 65, 140, 0.75)',
+        'Parts': 'rgba(0, 100, 110, 0.75)',
+        'Looks': 'rgba(80, 55, 145, 0.75)',
+        'Sound': 'rgba(130, 20, 90, 0.75)',
+        'Control': 'rgba(155, 65, 15, 0.75)',
+        'Operators': 'rgba(40, 120, 45, 0.75)',
+        'Sensors': 'rgba(5, 90, 110, 0.75)',
+      };
+      
+      const categoryHoverColors: { [key: string]: string } = {
+        'Motion': 'rgba(13, 101, 217, 0.2)',
+        'Parts': 'rgba(0, 161, 170, 0.2)',
+        'Looks': 'rgba(128, 87, 227, 0.2)',
+        'Sound': 'rgba(207, 34, 146, 0.2)',
+        'Control': 'rgba(244, 103, 24, 0.2)',
+        'Operators': 'rgba(64, 191, 74, 0.2)',
+        'Sensors': 'rgba(8, 145, 178, 0.2)',
+      };
+      
+      const color = categoryColors[categoryName] || 'rgba(60, 64, 72, 0.8)';
+      const hoverColor = categoryHoverColors[categoryName] || 'rgba(255, 255, 255, 0.2)';
+      
+      document.documentElement.style.setProperty('--flyout-bg-color', color);
+      document.documentElement.style.setProperty('--category-hover-color', hoverColor);
+    }
+  });
+
   primaryWorkspace.addChangeListener((event: Blockly.Events.Abstract) => {
     if ((window as any).isChallengeMode && !sequencerRunning) {
-      // Only update block count when not running (avoid performance issues)
       if (event.type === Blockly.Events.BLOCK_CREATE || 
           event.type === Blockly.Events.BLOCK_DELETE ||
           event.type === Blockly.Events.BLOCK_MOVE) {
-        // Update block count display
         const blockCount = primaryWorkspace?.getAllBlocks(false).filter(block => !block.isShadow()).length || 0;
         const blockString = `${blockCount} block${blockCount !== 1 ? 's' : ''}`;
         
@@ -1416,16 +1451,99 @@ function hideSandboxUI() {
   const modeToggle = document.getElementById('app-mode-toggle');
   const challengeMetrics = document.getElementById('challenge-metrics');
   const challengeMetricsFullscreen = document.getElementById('challenge-metrics-fullscreen');
+  const viewToggleChat = document.getElementById('view-toggle-chat');
 
   projectNameInput?.style.setProperty('display', 'none');
   saveIndicator?.style.setProperty('display', 'none');
   btStatusButton?.style.setProperty('display', 'none');
   modeToggle?.style.setProperty('display', 'none');
   
+  if (viewToggleChat) {
+    viewToggleChat.style.setProperty('opacity', '0.4');
+    viewToggleChat.style.setProperty('cursor', 'not-allowed');
+    viewToggleChat.setAttribute('data-disabled', 'true');
+    
+    const newChatButton = viewToggleChat.cloneNode(true) as HTMLElement;
+    viewToggleChat.parentNode?.replaceChild(newChatButton, viewToggleChat);
+    
+    newChatButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showToast('AI Chat for challenge will be implemented soon!');
+    });
+  }
+  
   challengeMetrics?.style.setProperty('display', 'inline-flex');
   challengeMetricsFullscreen?.style.setProperty('display', 'none');
 
-  console.log('Sandbox UI hidden for Challenge Mode');
+  console.log('Sandbox UI hidden for Challenge Mode (Chat AI disabled)');
+}
+
+function showToast(message: string) {
+  const existingToast = document.getElementById('challenge-toast');
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  const toast = document.createElement('div');
+  toast.id = 'challenge-toast';
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, rgba(17, 32, 61, 0.95), rgba(30, 50, 90, 0.95));
+    color: #E0E8F0;
+    padding: 14px 24px;
+    border-radius: 12px;
+    border: 1px solid rgba(65, 216, 255, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 10000;
+    animation: slideUpFade 0.3s ease;
+    backdrop-filter: blur(10px);
+  `;
+  toast.textContent = message;
+  
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideUpFade {
+      from {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+    }
+    @keyframes slideDownFade {
+      from {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+      to {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+      }
+    }
+  `;
+  
+  if (!document.getElementById('toast-animations')) {
+    style.id = 'toast-animations';
+    document.head.appendChild(style);
+  }
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideDownFade 0.3s ease';
+    setTimeout(() => {
+      toast.remove();
+    }, 300);
+  }, 3000);
 }
 
 function updateChallengeMetrics() {
@@ -1502,26 +1620,42 @@ function stopMetricsTimer() {
 }
 
 function createStarConditionsPanel(level: any) {
+  const backdrop = document.createElement('div');
+  backdrop.id = 'star-conditions-backdrop';
+  backdrop.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+  `;
+  
   const panel = document.createElement('div');
   panel.id = 'star-conditions-panel';
   panel.style.cssText = `
-    position: fixed;
-    top: 70px;
-    right: 20px;
-    bottom: 20px;
-    background: linear-gradient(135deg, rgba(17, 32, 61, 0.95), rgba(30, 50, 90, 0.95));
+    position: relative;
+    background: linear-gradient(135deg, rgba(17, 32, 61, 0.98), rgba(30, 50, 90, 0.98));
     border: 2px solid rgba(65, 216, 255, 0.6);
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 0;
-    width: 300px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    width: 100%;
+    max-width: 700px;
+    max-height: 85vh;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
     font-family: 'Segoe UI', system-ui, sans-serif;
-    z-index: 999;
-    backdrop-filter: blur(10px);
+    z-index: 9999;
     display: flex;
     flex-direction: column;
-    transition: all 0.3s ease;
     overflow: hidden;
+    animation: slideIn 0.3s ease;
   `;
 
   const difficultyColors: Record<string, string> = {
@@ -1532,7 +1666,7 @@ function createStarConditionsPanel(level: any) {
 
   const header = document.createElement('div');
   header.style.cssText = `
-    padding: 16px 20px;
+    padding: 24px 30px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1543,34 +1677,43 @@ function createStarConditionsPanel(level: any) {
   const titleDiv = document.createElement('div');
   titleDiv.style.cssText = `flex: 1;`;
   titleDiv.innerHTML = `
-    <h2 style="margin: 0; color: #41D8FF; font-size: 18px; font-weight: 600;">
-      ⭐ Challenge
+    <h2 style="margin: 0; color: #41D8FF; font-size: 24px; font-weight: 700;">
+      ⭐ Challenge Mission
     </h2>
   `;
   
-  const collapseBtn = document.createElement('button');
-  collapseBtn.id = 'star-panel-toggle';
-  collapseBtn.style.cssText = `
-    background: rgba(65, 216, 255, 0.1);
-    border: 1px solid rgba(65, 216, 255, 0.3);
-    border-radius: 6px;
+  const closeBtn = document.createElement('button');
+  closeBtn.id = 'star-panel-close';
+  closeBtn.style.cssText = `
+    background: rgba(65, 216, 255, 0.15);
+    border: 1px solid rgba(65, 216, 255, 0.4);
+    border-radius: 8px;
     color: #41D8FF;
     cursor: pointer;
-    padding: 6px 10px;
-    font-size: 16px;
+    padding: 8px 12px;
+    font-size: 18px;
+    font-weight: bold;
     transition: all 0.2s ease;
     flex-shrink: 0;
   `;
-  collapseBtn.innerHTML = '▼';
-  collapseBtn.title = 'Toggle panel';
+  closeBtn.innerHTML = '✕';
+  closeBtn.title = 'I understand, let me code!';
+  closeBtn.onmouseenter = () => {
+    closeBtn.style.background = 'rgba(65, 216, 255, 0.25)';
+    closeBtn.style.transform = 'scale(1.1)';
+  };
+  closeBtn.onmouseleave = () => {
+    closeBtn.style.background = 'rgba(65, 216, 255, 0.15)';
+    closeBtn.style.transform = 'scale(1)';
+  };
   
   header.appendChild(titleDiv);
-  header.appendChild(collapseBtn);
+  header.appendChild(closeBtn);
 
   const contentDiv = document.createElement('div');
   contentDiv.id = 'star-panel-content';
   contentDiv.style.cssText = `
-    padding: 16px 20px;
+    padding: 24px 30px;
     overflow-y: auto;
     overflow-x: hidden;
     flex: 1;
@@ -1578,55 +1721,100 @@ function createStarConditionsPanel(level: any) {
   `;
   
   contentDiv.innerHTML = `
-    <div style="margin-bottom: 16px;">
-      <h3 style="margin: 0 0 8px 0; color: #FFF; font-size: 16px; font-weight: 600;">
-        ${level.name}
-      </h3>
-      <div style="display: inline-block; padding: 4px 12px; background: ${difficultyColors[level.difficulty]}; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-        ${level.difficulty}
-      </div>
-      <p style="margin: 12px 0 0 0; color: #B0C4DE; font-size: 13px; line-height: 1.5;">
-        ${level.description}
-      </p>
-    </div>
-    <div style="border-top: 1px solid rgba(65, 216, 255, 0.3); padding-top: 16px;">
-      <h3 style="margin: 0 0 12px 0; color: #FFF; font-size: 14px; font-weight: 600;">
-        Star Objectives
-      </h3>
-      <div id="star-list">
-        ${level.stars.map((star: any, index: number) => `
-          <div class="star-item" data-star-index="${index}" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
-            <svg class="star-icon" width="20" height="20" viewBox="0 0 24 24" style="fill: #555; flex-shrink: 0;">
-              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-            </svg>
-            <span style="color: #CCC; font-size: 13px; line-height: 1.4;">
-              ${star.label}
-            </span>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+      <!-- Left Column: Challenge Info -->
+      <div style="padding-right: 12px;">
+        <div style="margin-bottom: 16px;">
+          <div style="display: inline-block; padding: 6px 16px; background: ${difficultyColors[level.difficulty]}; border-radius: 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); margin-bottom: 16px;">
+            ${level.difficulty}
           </div>
-        `).join('')}
+          <h3 style="margin: 0 0 16px 0; color: #FFF; font-size: 26px; font-weight: 700; line-height: 1.2;">
+            ${level.name}
+          </h3>
+          <p style="margin: 0; color: #D0DCE8; font-size: 15px; line-height: 1.7;">
+            ${level.description}
+          </p>
+        </div>
       </div>
+      
+      <!-- Right Column: Star Objectives -->
+      <div style="padding-left: 12px; border-left: 2px solid rgba(65, 216, 255, 0.3);">
+        <h3 style="margin: 0 0 16px 0; color: #FFF; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+          <span>⭐</span>
+          <span>Star Objectives</span>
+        </h3>
+        <div id="star-list" style="display: grid; gap: 10px;">
+          ${level.stars.map((star: any, index: number) => `
+            <div class="star-item" data-star-index="${index}" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04)); border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s ease;">
+              <svg class="star-icon" width="20" height="20" viewBox="0 0 24 24" style="fill: #666; flex-shrink: 0; transition: all 0.2s ease;">
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+              </svg>
+              <span style="color: #E0E8F0; font-size: 14px; line-height: 1.5; font-weight: 500;">
+                ${star.label}
+              </span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px; padding-top: 24px; border-top: 1px solid rgba(65, 216, 255, 0.2);">
+      <p style="color: #41D8FF; font-size: 14px; font-weight: 600; margin: 0;">
+        💡 Click the ✕ button above when you're ready to start coding!
+      </p>
     </div>
   `;
 
   panel.appendChild(header);
   panel.appendChild(contentDiv);
-  document.body.appendChild(panel);
-
-  let isCollapsed = false;
-  collapseBtn.addEventListener('click', () => {
-    isCollapsed = !isCollapsed;
-    if (isCollapsed) {
-      contentDiv.style.display = 'none';
-      collapseBtn.innerHTML = '▶';
-      panel.style.bottom = 'auto';
-    } else {
-      contentDiv.style.display = 'block';
-      collapseBtn.innerHTML = '▼';
-      panel.style.bottom = '20px';
+  backdrop.appendChild(panel);
+  document.body.appendChild(backdrop);
+  
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
+    @keyframes slideIn {
+      from { transform: translateY(-30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    @keyframes slideOut {
+      from { transform: translateY(0); opacity: 1; }
+      to { transform: translateY(-20px); opacity: 0; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  closeBtn.addEventListener('click', () => {
+    backdrop.style.animation = 'fadeOut 0.2s ease';
+    panel.style.animation = 'slideOut 0.2s ease';
+    setTimeout(() => {
+      backdrop.style.display = 'none';
+      const challengeInfoBtn = document.getElementById('challenge-info-button');
+      if (challengeInfoBtn) {
+        challengeInfoBtn.style.display = 'block';
+      }
+    }, 200);
   });
 
-  console.log('Star conditions panel created with collapse toggle');
+  const challengeInfoBtn = document.getElementById('challenge-info-button');
+  if (challengeInfoBtn) {
+    challengeInfoBtn.style.display = 'none';
+    challengeInfoBtn.addEventListener('click', () => {
+      backdrop.style.display = 'flex';
+      backdrop.style.animation = 'fadeIn 0.3s ease';
+      panel.style.animation = 'slideIn 0.3s ease';
+      challengeInfoBtn.style.display = 'none';
+    });
+  }
+
+  console.log('Star conditions panel created with full-screen overlay');
 }
 
 function evaluateChallengeStars(sequencer: SimulatorSequencer | null) {
