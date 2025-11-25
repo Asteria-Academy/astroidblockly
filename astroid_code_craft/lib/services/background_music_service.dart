@@ -21,15 +21,14 @@ class BackgroundMusicService with WidgetsBindingObserver {
       await _audioPlayer.setAudioContext(
         AudioContext(
           iOS: AudioContextIOS(
-            category: AVAudioSessionCategory.ambient,
-            options: {AVAudioSessionOptions.mixWithOthers},
+            category: AVAudioSessionCategory.ambient
           ),
           android: AudioContextAndroid(
             isSpeakerphoneOn: false,
             stayAwake: false,
             contentType: AndroidContentType.music,
             usageType: AndroidUsageType.media,
-            audioFocus: AndroidAudioFocus.gain,
+            audioFocus: AndroidAudioFocus.none, 
           ),
         ),
       );

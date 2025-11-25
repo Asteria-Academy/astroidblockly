@@ -32,6 +32,7 @@ interface Project {
   last_modified: number;
   workspace_json: any;
   thumbnail_data?: string | null;
+  zoom_scale?: number;
 }
 
 const INITIAL_WORKSPACE_JSON = {
@@ -1103,6 +1104,9 @@ function initializeWorkspace() {
       suppressSaveIndicator = true;
       try {
         Blockly.serialization.workspaces.load(projectToLoad.workspace_json, primaryWorkspace);
+        if (typeof projectToLoad.zoom_scale === 'number') {
+          primaryWorkspace.setScale(projectToLoad.zoom_scale);
+        }
       } finally {
         suppressSaveIndicator = false;
       }
@@ -1129,6 +1133,9 @@ function initializeWorkspace() {
       suppressSaveIndicator = true;
       try {
         Blockly.serialization.workspaces.load(lastProject.workspace_json, primaryWorkspace);
+        if (typeof lastProject.zoom_scale === 'number') {
+          primaryWorkspace.setScale(lastProject.zoom_scale);
+        }
       } finally {
         suppressSaveIndicator = false;
       }
@@ -1141,6 +1148,9 @@ function initializeWorkspace() {
         suppressSaveIndicator = true;
         try {
           Blockly.serialization.workspaces.load(mostRecentProject.workspace_json, primaryWorkspace);
+          if (typeof mostRecentProject.zoom_scale === 'number') {
+            primaryWorkspace.setScale(mostRecentProject.zoom_scale);
+          }
         } finally {
           suppressSaveIndicator = false;
         }
@@ -1187,9 +1197,11 @@ function initializeWorkspace() {
         }
         saveTimeout = window.setTimeout(() => {
           const workspaceJson = Blockly.serialization.workspaces.save(primaryWorkspace);
+          const currentZoomScale = primaryWorkspace.getScale();
           const challengeWorkspaces = JSON.parse(localStorage.getItem('astroid_challenge_workspaces') || '{}');
           challengeWorkspaces[`level_${levelId}`] = {
             workspace: workspaceJson,
+            zoom_scale: currentZoomScale,
             lastModified: Date.now()
           };
           localStorage.setItem('astroid_challenge_workspaces', JSON.stringify(challengeWorkspaces));
@@ -1209,11 +1221,13 @@ function initializeWorkspace() {
       console.log("Debounced save triggered.");
       setSaveState('saving');
       const workspaceJson = Blockly.serialization.workspaces.save(primaryWorkspace);
+      const currentZoomScale = primaryWorkspace.getScale();
       let currentData = getProjectsData();
       const projectIndex = currentData.projects.findIndex((p: Project) => p.id === currentProjectId);
 
       if (projectIndex !== -1) {
         currentData.projects[projectIndex].workspace_json = workspaceJson;
+        currentData.projects[projectIndex].zoom_scale = currentZoomScale;
         currentData.projects[projectIndex].last_modified = Date.now();
         try {
           const thumbnailData = await generateWorkspaceThumbnail();
@@ -1433,6 +1447,9 @@ async function initializeChallengeMode(levelId: number, sequencer: SimulatorSequ
     if (savedWorkspace && savedWorkspace.workspace) {
       console.log(`Loading saved workspace for level ${levelId}`);
       Blockly.serialization.workspaces.load(savedWorkspace.workspace, primaryWorkspace);
+      if (typeof savedWorkspace.zoom_scale === 'number') {
+        primaryWorkspace.setScale(savedWorkspace.zoom_scale);
+      }
     } else {
       console.log(`No saved workspace found, loading initial blocks for level ${levelId}`);
       Blockly.serialization.workspaces.load(INITIAL_WORKSPACE_JSON, primaryWorkspace);
@@ -1945,7 +1962,8 @@ function createNewProject(data: any) {
     name: `New Adventure ${data.projects.length + 1}`,
     last_modified: Date.now(),
     workspace_json: INITIAL_WORKSPACE_JSON,
-    thumbnail_data: null
+    thumbnail_data: null,
+    zoom_scale: 0.5
   };
   data.projects.push(newProject);
   data.last_opened_id = newId;

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../services/bluetooth_service.dart';
+import '../services/preferences_service.dart';
 import '../router/app_router.dart';
 import './splash_gate.dart';
 
@@ -130,7 +131,10 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
                       } else if (decoded['event'] == 'stop_code') {
                         _btService.stopSequence();
                       } else if (decoded['event'] == 'open_chat_ai') {
-                        Navigator.pushReplacementNamed(context, AppRoutes.codeChat);
+                        Navigator.pushReplacementNamed(
+                          context,
+                          AppRoutes.codeChat,
+                        );
                       } else if (decoded['event'] == 'navigate_home') {
                         _btService.stopSequence();
                         Navigator.pushReplacementNamed(context, AppRoutes.home);
@@ -144,9 +148,50 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
                 },
               );
             },
-            onLoadStop: (controller, url) {
+            onLoadStop: (controller, url) async {
               controller.evaluateJavascript(
-                source: "if (window.setViewMode) { window.setViewMode('blocks'); }",
+                source:
+                    "if (window.setViewMode) { window.setViewMode('blocks'); }",
+              );
+
+              // Apply saved volume setting to all audio/video elements
+              final prefs = await PreferencesService.getInstance();
+              final volume = prefs.getWebViewVolume();
+              controller.evaluateJavascript(
+                source:
+                    """
+                  (function() {
+                    // Set volume for all existing audio/video elements
+                    document.querySelectorAll('audio, video').forEach(function(el) {
+                      el.volume = $volume;
+                    });
+                    
+                    // Override HTMLMediaElement volume setter to apply to new elements
+                    var originalAudioPlay = HTMLAudioElement.prototype.play;
+                    HTMLAudioElement.prototype.play = function() {
+                      this.volume = $volume;
+                      return originalAudioPlay.apply(this, arguments);
+                    };
+                    
+                    var originalVideoPlay = HTMLVideoElement.prototype.play;
+                    HTMLVideoElement.prototype.play = function() {
+                      this.volume = $volume;
+                      return originalVideoPlay.apply(this, arguments);
+                    };
+                    
+                    // Watch for new audio/video elements being added
+                    var observer = new MutationObserver(function(mutations) {
+                      mutations.forEach(function(mutation) {
+                        mutation.addedNodes.forEach(function(node) {
+                          if (node.tagName === 'AUDIO' || node.tagName === 'VIDEO') {
+                            node.volume = $volume;
+                          }
+                        });
+                      });
+                    });
+                    observer.observe(document.body, { childList: true, subtree: true });
+                  })();
+                """,
               );
             },
             onConsoleMessage: (controller, consoleMessage) {

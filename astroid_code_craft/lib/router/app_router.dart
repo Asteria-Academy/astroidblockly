@@ -6,7 +6,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 // === Import halamanmu ===
 import '../screens/splash_gate.dart';
 import '../screens/home_screen.dart';
-// import '../screens/settings_page.dart';
+import '../screens/settings_screen.dart';
 import '../screens/astroid_webview_screen.dart';
 import '../screens/mission_control_screen.dart';
 import '../screens/connect_screen.dart';
@@ -36,6 +36,9 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
 
     case AppRoutes.home:
       return _page(const HomeScreen());
+
+    case AppRoutes.settings:
+      return _page(const SettingsScreen());
 
     case AppRoutes.webview:
       final args =

@@ -44,6 +44,8 @@ dependencies:
   speech_to_text: ^7.3.0
   flutter_dotenv: ^6.0.0
   audioplayers: ^6.5.1
+  showcaseview: ^5.0.1
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
