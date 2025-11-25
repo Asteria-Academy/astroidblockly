@@ -1,0 +1,203 @@
+{
+  "@@locale": "en",
+  
+  "appTitle": "Astroid Blockly",
+  "@appTitle": {
+    "description": "The application title"
+  },
+
+  "navHome": "HOME",
+  "@navHome": {
+    "description": "Home navigation label"
+  },
+
+  "navCode": "CODE",
+  "@navCode": {
+    "description": "Code/AI assistant navigation label"
+  },
+
+  "navChallenges": "CHALLENGES",
+  "@navChallenges": {
+    "description": "Challenges navigation label"
+  },
+
+  "navConnect": "CONNECT",
+  "@navConnect": {
+    "description": "Connect robot navigation label"
+  },
+
+  "navPlay": "PLAY",
+  "@navPlay": {
+    "description": "Play/challenges navigation label"
+  },
+
+  "showcaseHomeTitle": "Home",
+  "@showcaseHomeTitle": {
+    "description": "Title for home showcase"
+  },
+
+  "showcaseHomeDesc": "Your command center. Return here anytime to access all features.",
+  "@showcaseHomeDesc": {
+    "description": "Description for home showcase"
+  },
+
+  "showcaseCodeTitle": "AI Code Assistant",
+  "@showcaseCodeTitle": {
+    "description": "Title for code assistant showcase"
+  },
+
+  "showcaseCodeDesc": "Chat with AI to get coding help and learn programming concepts.",
+  "@showcaseCodeDesc": {
+    "description": "Description for code assistant showcase"
+  },
+
+  "showcaseChallengesTitle": "Challenges",
+  "@showcaseChallengesTitle": {
+    "description": "Title for challenges showcase"
+  },
+
+  "showcaseChallengesDesc": "Test your skills with exciting coding challenges and puzzles.",
+  "@showcaseChallengesDesc": {
+    "description": "Description for challenges showcase"
+  },
+
+  "showcaseConnectTitle": "Connect Robot",
+  "@showcaseConnectTitle": {
+    "description": "Title for connect robot showcase"
+  },
+
+  "showcaseConnectDesc": "Connect to your physical robot via Bluetooth to bring your code to life.",
+  "@showcaseConnectDesc": {
+    "description": "Description for connect robot showcase"
+  },
+
+  "showcaseCreateTitle": "Create Adventure",
+  "@showcaseCreateTitle": {
+    "description": "Title for create adventure showcase"
+  },
+
+  "showcaseCreateDesc": "Start a brand new coding project. Build and program your robot from scratch!",
+  "@showcaseCreateDesc": {
+    "description": "Description for create adventure showcase"
+  },
+
+  "showcaseContinueTitle": "Continue Journey",
+  "@showcaseContinueTitle": {
+    "description": "Title for continue journey showcase"
+  },
+
+  "showcaseContinueDesc": "Resume your last project and keep building your creation.",
+  "@showcaseContinueDesc": {
+    "description": "Description for continue journey showcase"
+  },
+
+  "showcaseMissionTitle": "Mission Control",
+  "@showcaseMissionTitle": {
+    "description": "Title for mission control showcase"
+  },
+
+  "showcaseMissionDesc": "View and manage all your saved projects. Load, delete, or rename them here.",
+  "@showcaseMissionDesc": {
+    "description": "Description for mission control showcase"
+  },
+
+  "btnSkip": "Skip",
+  "@btnSkip": {
+    "description": "Skip button text"
+  },
+
+  "btnNext": "Next",
+  "@btnNext": {
+    "description": "Next button text"
+  },
+
+  "btnPrevious": "Previous",
+  "@btnPrevious": {
+    "description": "Previous button text"
+  },
+
+  "btnFinish": "Finish",
+  "@btnFinish": {
+    "description": "Finish button text"
+  },
+
+  "ctaSubtitle": "BUILD, PLAY, AND COMMAND",
+  "@ctaSubtitle": {
+    "description": "Main subtitle on home screen"
+  },
+
+  "btnCreateAdventure": "CREATE ADVENTURE",
+  "@btnCreateAdventure": {
+    "description": "Create adventure button label"
+  },
+
+  "btnContinueJourney": "CONTINUE JOURNEY",
+  "@btnContinueJourney": {
+    "description": "Continue journey button label"
+  },
+
+  "btnMissionControl": "MISSION CONTROL",
+  "@btnMissionControl": {
+    "description": "Mission control button label"
+  },
+
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Settings screen title"
+  },
+
+  "settingsMusicVolume": "Music Volume",
+  "@settingsMusicVolume": {
+    "description": "Music volume setting label"
+  },
+
+  "settingsSoundVolume": "Sound Effects Volume",
+  "@settingsSoundVolume": {
+    "description": "Sound effects volume setting label"
+  },
+
+  "settingsTutorial": "Show Tutorial",
+  "@settingsTutorial": {
+    "description": "Show tutorial button label"
+  },
+
+  "settingsAbout": "About",
+  "@settingsAbout": {
+    "description": "About button label"
+  },
+
+  "aboutAppName": "Astroid Code Craft",
+  "@aboutAppName": {
+    "description": "Application name in about dialog"
+  },
+
+  "aboutVersion": "1.0.0",
+  "@aboutVersion": {
+    "description": "Application version"
+  },
+
+  "aboutLegalese": "© 2025 Asteria Academy",
+  "@aboutLegalese": {
+    "description": "Copyright notice"
+  },
+
+  "aboutDescription": "A visual programming environment for learning robotics and coding.",
+  "@aboutDescription": {
+    "description": "Application description in about dialog"
+  },
+
+  "settingsLanguage": "Language",
+  "@settingsLanguage": {
+    "description": "Language setting label"
+  },
+
+  "languageEnglish": "English",
+  "@languageEnglish": {
+    "description": "English language option"
+  },
+
+  "languageIndonesian": "Indonesian",
+  "@languageIndonesian": {
+    "description": "Indonesian language option"
+  }
+}

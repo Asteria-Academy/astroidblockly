@@ -6,6 +6,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:showcaseview/showcaseview.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/project.dart';
 import '../router/app_router.dart';
 import '../services/preferences_service.dart';
@@ -450,9 +451,8 @@ class _TopSegmentedNav extends StatelessWidget {
           Expanded(
             child: Showcase(
               key: navHomeKey,
-              title: 'Home',
-              description:
-                  'Your command center. Return here anytime to access all features.',
+              title: AppLocalizations.of(context)!.showcaseHomeTitle,
+              description: AppLocalizations.of(context)!.showcaseHomeDesc,
               targetBorderRadius: BorderRadius.circular(segmentHeight * 0.48),
               tooltipBackgroundColor: const Color(0xFF0F1D3C),
               tooltipBorderRadius: BorderRadius.circular(16),
@@ -475,15 +475,15 @@ class _TopSegmentedNav extends StatelessWidget {
               tooltipActions: [
                 TooltipActionButton(
                   type: TooltipDefaultActionType.skip,
-                  name: 'Skip',
+                  name: AppLocalizations.of(context)!.btnSkip,
                 ),
                 TooltipActionButton(
                   type: TooltipDefaultActionType.next,
-                  name: 'Next',
+                  name: AppLocalizations.of(context)!.btnNext,
                 ),
               ],
               child: _NavPill(
-                label: 'HOME',
+                label: AppLocalizations.of(context)!.navHome,
                 icon: Icons.rocket_launch_outlined,
                 active: true,
                 height: segmentHeight,
@@ -495,9 +495,8 @@ class _TopSegmentedNav extends StatelessWidget {
           Expanded(
             child: Showcase(
               key: navCodeKey,
-              title: 'AI Code Assistant',
-              description:
-                  'Chat with AI to get coding help and learn programming concepts.',
+              title: AppLocalizations.of(context)!.showcaseCodeTitle,
+              description: AppLocalizations.of(context)!.showcaseCodeDesc,
               targetBorderRadius: BorderRadius.circular(segmentHeight * 0.48),
               tooltipBackgroundColor: const Color(0xFF0F1D3C),
               tooltipBorderRadius: BorderRadius.circular(16),
@@ -520,15 +519,15 @@ class _TopSegmentedNav extends StatelessWidget {
               tooltipActions: [
                 TooltipActionButton(
                   type: TooltipDefaultActionType.previous,
-                  name: 'Previous',
+                  name: AppLocalizations.of(context)!.btnPrevious,
                 ),
                 TooltipActionButton(
                   type: TooltipDefaultActionType.next,
-                  name: 'Next',
+                  name: AppLocalizations.of(context)!.btnNext,
                 ),
               ],
               child: _NavPill(
-                label: 'CODE',
+                label: AppLocalizations.of(context)!.navCode,
                 icon: Icons.satellite_alt_outlined,
                 height: segmentHeight,
                 onTap: onTapCode,
@@ -539,9 +538,8 @@ class _TopSegmentedNav extends StatelessWidget {
           Expanded(
             child: Showcase(
               key: navChallengesKey,
-              title: 'Challenges',
-              description:
-                  'Test your skills with exciting coding challenges and puzzles.',
+              title: AppLocalizations.of(context)!.showcaseChallengesTitle,
+              description: AppLocalizations.of(context)!.showcaseChallengesDesc,
               targetBorderRadius: BorderRadius.circular(segmentHeight * 0.48),
               tooltipBackgroundColor: const Color(0xFF0F1D3C),
               tooltipBorderRadius: BorderRadius.circular(16),
@@ -564,15 +562,15 @@ class _TopSegmentedNav extends StatelessWidget {
               tooltipActions: [
                 TooltipActionButton(
                   type: TooltipDefaultActionType.previous,
-                  name: 'Previous',
+                  name: AppLocalizations.of(context)!.btnPrevious,
                 ),
                 TooltipActionButton(
                   type: TooltipDefaultActionType.next,
-                  name: 'Next',
+                  name: AppLocalizations.of(context)!.btnNext,
                 ),
               ],
               child: _NavPill(
-                label: 'PLAY',
+                label: AppLocalizations.of(context)!.navPlay,
                 icon: Icons.stars_outlined,
                 height: segmentHeight,
                 onTap: onTapChallenges,
@@ -583,9 +581,8 @@ class _TopSegmentedNav extends StatelessWidget {
           Expanded(
             child: Showcase(
               key: navConnectKey,
-              title: 'Connect Robot',
-              description:
-                  'Connect to your physical robot via Bluetooth to bring your code to life.',
+              title: AppLocalizations.of(context)!.showcaseConnectTitle,
+              description: AppLocalizations.of(context)!.showcaseConnectDesc,
               targetBorderRadius: BorderRadius.circular(segmentHeight * 0.48),
               tooltipBackgroundColor: const Color(0xFF0F1D3C),
               tooltipBorderRadius: BorderRadius.circular(16),
@@ -608,15 +605,15 @@ class _TopSegmentedNav extends StatelessWidget {
               tooltipActions: [
                 TooltipActionButton(
                   type: TooltipDefaultActionType.previous,
-                  name: 'Previous',
+                  name: AppLocalizations.of(context)!.btnPrevious,
                 ),
                 TooltipActionButton(
                   type: TooltipDefaultActionType.next,
-                  name: 'Next',
+                  name: AppLocalizations.of(context)!.btnNext,
                 ),
               ],
               child: _NavPill(
-                label: 'CONNECT',
+                label: AppLocalizations.of(context)!.navConnect,
                 icon: Icons.wifi_tethering_outlined,
                 height: segmentHeight,
                 onTap: onTapConnect,
@@ -824,7 +821,7 @@ class _GalaxyPanel extends StatelessWidget {
             ),
             SizedBox(height: height * 0.04),
             Text(
-              'BUILD, PLAY, AND COMMAND',
+              AppLocalizations.of(context)!.ctaSubtitle,
               textAlign: TextAlign.center,
               style: GoogleFonts.titanOne(
                 fontSize: subtitleFont,
@@ -846,9 +843,8 @@ class _GalaxyPanel extends StatelessWidget {
               children: [
                 Showcase(
                   key: createAdventureKey,
-                  title: 'Create Adventure',
-                  description:
-                      'Start a brand new coding project. Build and program your robot from scratch!',
+                  title: AppLocalizations.of(context)!.showcaseCreateTitle,
+                  description: AppLocalizations.of(context)!.showcaseCreateDesc,
                   targetBorderRadius: BorderRadius.circular(ctaHeight * 0.5),
                   tooltipBackgroundColor: const Color(0xFF0F1D3C),
                   tooltipBorderRadius: BorderRadius.circular(16),
@@ -871,17 +867,17 @@ class _GalaxyPanel extends StatelessWidget {
                   tooltipActions: [
                     TooltipActionButton(
                       type: TooltipDefaultActionType.previous,
-                      name: 'Previous',
+                      name: AppLocalizations.of(context)!.btnPrevious,
                     ),
                     TooltipActionButton(
                       type: TooltipDefaultActionType.next,
-                      name: 'Next',
+                      name: AppLocalizations.of(context)!.btnNext,
                     ),
                   ],
                   child: _CTAButton(
                     width: ctaWidth,
                     height: ctaHeight,
-                    label: 'CREATE ADVENTURE',
+                    label: AppLocalizations.of(context)!.btnCreateAdventure,
                     icon: Icons.auto_awesome_outlined,
                     iconColor: const Color(0xFF3B2D63),
                     gradient: const LinearGradient(
@@ -894,9 +890,10 @@ class _GalaxyPanel extends StatelessWidget {
                 ),
                 Showcase(
                   key: continueJourneyKey,
-                  title: 'Continue Journey',
-                  description:
-                      'Resume your last project and keep building your creation.',
+                  title: AppLocalizations.of(context)!.showcaseContinueTitle,
+                  description: AppLocalizations.of(
+                    context,
+                  )!.showcaseContinueDesc,
                   targetBorderRadius: BorderRadius.circular(ctaHeight * 0.5),
                   tooltipBackgroundColor: const Color(0xFF0F1D3C),
                   tooltipBorderRadius: BorderRadius.circular(16),
@@ -919,17 +916,17 @@ class _GalaxyPanel extends StatelessWidget {
                   tooltipActions: [
                     TooltipActionButton(
                       type: TooltipDefaultActionType.previous,
-                      name: 'Previous',
+                      name: AppLocalizations.of(context)!.btnPrevious,
                     ),
                     TooltipActionButton(
                       type: TooltipDefaultActionType.next,
-                      name: 'Next',
+                      name: AppLocalizations.of(context)!.btnNext,
                     ),
                   ],
                   child: _CTAButton(
                     width: ctaWidth,
                     height: ctaHeight,
-                    label: 'CONTINUE JOURNEY',
+                    label: AppLocalizations.of(context)!.btnContinueJourney,
                     icon: Icons.play_circle_outline,
                     iconColor: const Color(0xFF153548),
                     gradient: const LinearGradient(
@@ -942,9 +939,10 @@ class _GalaxyPanel extends StatelessWidget {
                 ),
                 Showcase(
                   key: missionControlKey,
-                  title: 'Mission Control',
-                  description:
-                      'View and manage all your saved projects. Load, delete, or rename them here.',
+                  title: AppLocalizations.of(context)!.showcaseMissionTitle,
+                  description: AppLocalizations.of(
+                    context,
+                  )!.showcaseMissionDesc,
                   targetBorderRadius: BorderRadius.circular(ctaHeight * 0.5),
                   tooltipBackgroundColor: const Color(0xFF0F1D3C),
                   tooltipBorderRadius: BorderRadius.circular(16),
@@ -967,17 +965,17 @@ class _GalaxyPanel extends StatelessWidget {
                   tooltipActions: [
                     TooltipActionButton(
                       type: TooltipDefaultActionType.previous,
-                      name: 'Previous',
+                      name: AppLocalizations.of(context)!.btnPrevious,
                     ),
                     TooltipActionButton(
                       type: TooltipDefaultActionType.next,
-                      name: 'Finish',
+                      name: AppLocalizations.of(context)!.btnFinish,
                     ),
                   ],
                   child: _CTAButton(
                     width: ctaWidth,
                     height: ctaHeight,
-                    label: 'MISSION CONTROL',
+                    label: AppLocalizations.of(context)!.btnMissionControl,
                     icon: Icons.inventory_2_outlined,
                     iconColor: const Color(0xFF452720),
                     gradient: const LinearGradient(

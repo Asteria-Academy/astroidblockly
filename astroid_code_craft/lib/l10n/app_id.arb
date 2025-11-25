@@ -1,0 +1,203 @@
+{
+  "@@locale": "id",
+  
+  "appTitle": "Astroid Blockly",
+  "@appTitle": {
+    "description": "Judul aplikasi"
+  },
+
+  "navHome": "BERANDA",
+  "@navHome": {
+    "description": "Label navigasi beranda"
+  },
+
+  "navCode": "KODE",
+  "@navCode": {
+    "description": "Label navigasi asisten AI/kode"
+  },
+
+  "navChallenges": "TANTANGAN",
+  "@navChallenges": {
+    "description": "Label navigasi tantangan"
+  },
+
+  "navConnect": "HUBUNGKAN",
+  "@navConnect": {
+    "description": "Label navigasi hubungkan robot"
+  },
+
+  "navPlay": "MAIN",
+  "@navPlay": {
+    "description": "Label navigasi main/tantangan"
+  },
+
+  "showcaseHomeTitle": "Beranda",
+  "@showcaseHomeTitle": {
+    "description": "Judul showcase beranda"
+  },
+
+  "showcaseHomeDesc": "Pusat komando Anda. Kembali ke sini kapan saja untuk mengakses semua fitur.",
+  "@showcaseHomeDesc": {
+    "description": "Deskripsi showcase beranda"
+  },
+
+  "showcaseCodeTitle": "Asisten Kode AI",
+  "@showcaseCodeTitle": {
+    "description": "Judul showcase asisten kode"
+  },
+
+  "showcaseCodeDesc": "Ngobrol dengan AI untuk mendapat bantuan coding dan belajar konsep pemrograman.",
+  "@showcaseCodeDesc": {
+    "description": "Deskripsi showcase asisten kode"
+  },
+
+  "showcaseChallengesTitle": "Tantangan",
+  "@showcaseChallengesTitle": {
+    "description": "Judul showcase tantangan"
+  },
+
+  "showcaseChallengesDesc": "Uji kemampuanmu dengan tantangan coding dan puzzle yang seru.",
+  "@showcaseChallengesDesc": {
+    "description": "Deskripsi showcase tantangan"
+  },
+
+  "showcaseConnectTitle": "Hubungkan Robot",
+  "@showcaseConnectTitle": {
+    "description": "Judul showcase hubungkan robot"
+  },
+
+  "showcaseConnectDesc": "Hubungkan ke robot fisikmu via Bluetooth untuk menghidupkan kode-mu.",
+  "@showcaseConnectDesc": {
+    "description": "Deskripsi showcase hubungkan robot"
+  },
+
+  "showcaseCreateTitle": "Buat Petualangan",
+  "@showcaseCreateTitle": {
+    "description": "Judul showcase buat petualangan"
+  },
+
+  "showcaseCreateDesc": "Mulai proyek coding baru. Bangun dan program robotmu dari awal!",
+  "@showcaseCreateDesc": {
+    "description": "Deskripsi showcase buat petualangan"
+  },
+
+  "showcaseContinueTitle": "Lanjutkan",
+  "@showcaseContinueTitle": {
+    "description": "Judul showcase lanjutkan perjalanan"
+  },
+
+  "showcaseContinueDesc": "Lanjutkan proyek terakhirmu dan terus bangun ciptaanmu.",
+  "@showcaseContinueDesc": {
+    "description": "Deskripsi showcase lanjutkan perjalanan"
+  },
+
+  "showcaseMissionTitle": "Kontrol Misi",
+  "@showcaseMissionTitle": {
+    "description": "Judul showcase kontrol misi"
+  },
+
+  "showcaseMissionDesc": "Lihat dan kelola semua proyekmu yang tersimpan. Muat, hapus, atau ganti namanya di sini.",
+  "@showcaseMissionDesc": {
+    "description": "Deskripsi showcase kontrol misi"
+  },
+
+  "btnSkip": "Lewati",
+  "@btnSkip": {
+    "description": "Teks tombol lewati"
+  },
+
+  "btnNext": "Lanjut",
+  "@btnNext": {
+    "description": "Teks tombol lanjut"
+  },
+
+  "btnPrevious": "Kembali",
+  "@btnPrevious": {
+    "description": "Teks tombol kembali"
+  },
+
+  "btnFinish": "Selesai",
+  "@btnFinish": {
+    "description": "Teks tombol selesai"
+  },
+
+  "ctaSubtitle": "BANGUN, MAINKAN, DAN PERINTAHKAN",
+  "@ctaSubtitle": {
+    "description": "Subjudul utama di layar beranda"
+  },
+
+  "btnCreateAdventure": "BUAT PETUALANGAN",
+  "@btnCreateAdventure": {
+    "description": "Label tombol buat petualangan"
+  },
+
+  "btnContinueJourney": "LANJUTKAN PERJALANAN",
+  "@btnContinueJourney": {
+    "description": "Label tombol lanjutkan perjalanan"
+  },
+
+  "btnMissionControl": "KONTROL MISI",
+  "@btnMissionControl": {
+    "description": "Label tombol kontrol misi"
+  },
+
+  "settingsTitle": "Pengaturan",
+  "@settingsTitle": {
+    "description": "Judul layar pengaturan"
+  },
+
+  "settingsMusicVolume": "Volume Musik",
+  "@settingsMusicVolume": {
+    "description": "Label pengaturan volume musik"
+  },
+
+  "settingsSoundVolume": "Volume Efek Suara",
+  "@settingsSoundVolume": {
+    "description": "Label pengaturan volume efek suara"
+  },
+
+  "settingsTutorial": "Tampilkan Tutorial",
+  "@settingsTutorial": {
+    "description": "Label tombol tampilkan tutorial"
+  },
+
+  "settingsAbout": "Tentang",
+  "@settingsAbout": {
+    "description": "Label tombol tentang"
+  },
+
+  "aboutAppName": "Astroid Code Craft",
+  "@aboutAppName": {
+    "description": "Nama aplikasi di dialog tentang"
+  },
+
+  "aboutVersion": "1.0.0",
+  "@aboutVersion": {
+    "description": "Versi aplikasi"
+  },
+
+  "aboutLegalese": "© 2025 Asteria Academy",
+  "@aboutLegalese": {
+    "description": "Pemberitahuan hak cipta"
+  },
+
+  "aboutDescription": "Lingkungan pemrograman visual untuk belajar robotika dan coding.",
+  "@aboutDescription": {
+    "description": "Deskripsi aplikasi di dialog tentang"
+  },
+
+  "settingsLanguage": "Bahasa",
+  "@settingsLanguage": {
+    "description": "Label pengaturan bahasa"
+  },
+
+  "languageEnglish": "English",
+  "@languageEnglish": {
+    "description": "Opsi bahasa Inggris"
+  },
+
+  "languageIndonesian": "Bahasa Indonesia",
+  "@languageIndonesian": {
+    "description": "Opsi bahasa Indonesia"
+  }
+}

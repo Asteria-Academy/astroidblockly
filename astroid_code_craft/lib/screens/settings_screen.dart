@@ -3,6 +3,9 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import '../l10n/generated/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../app.dart';
 import '../services/preferences_service.dart';
 import '../services/background_music_service.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   double _musicVolume = 0.2;
   double _webViewVolume = 1.0;
   bool _isLoading = true;
+  String _currentLanguage = 'en';
 
   @override
   void initState() {
@@ -56,12 +60,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final prefs = await PreferencesService.getInstance();
+    final sharedPrefs = await SharedPreferences.getInstance();
+    final savedLanguage = sharedPrefs.getString('language') ?? 'en';
     if (mounted) {
       setState(() {
         _musicVolume = prefs.getMusicVolume();
         _webViewVolume = prefs.getWebViewVolume();
+        _currentLanguage = savedLanguage;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _changeLanguage(String languageCode) async {
+    _playBubblePointOne();
+    final sharedPrefs = await SharedPreferences.getInstance();
+    await sharedPrefs.setString('language', languageCode);
+    if (mounted) {
+      setState(() {
+        _currentLanguage = languageCode;
+      });
+      // Update app locale dynamically
+      if (context.mounted) {
+        MyApp.setLocale(context, Locale(languageCode));
+      }
     }
   }
 
@@ -91,22 +113,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showAbout() {
     _playBubblePointOne();
+    final l10n = AppLocalizations.of(context)!;
     showAboutDialog(
       context: context,
-      applicationName: 'Astroid Code Craft',
-      applicationVersion: '1.0.0',
+      applicationName: l10n.aboutAppName,
+      applicationVersion: l10n.aboutVersion,
       applicationIcon: Image.asset(
         'assets/brand/mascotnobg.png',
         width: 64,
         height: 64,
       ),
-      applicationLegalese: '© 2025 Asteria Academy',
+      applicationLegalese: l10n.aboutLegalese,
       children: <Widget>[
         const SizedBox(height: 16),
-        Text(
-          'A visual programming environment for learning robotics and coding.',
-          style: GoogleFonts.inter(fontSize: 14),
-        ),
+        Text(l10n.aboutDescription, style: GoogleFonts.inter(fontSize: 14)),
       ],
     );
   }
@@ -205,6 +225,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         musicVolume: _musicVolume,
                         webViewVolume: _webViewVolume,
                         isLoading: _isLoading,
+                        currentLanguage: _currentLanguage,
                         onShowTutorial: _showTutorial,
                         onMusicVolumeChange: _changeMusicVolume,
                         onWebViewVolumeChange: _changeWebViewVolume,
@@ -212,6 +233,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           await _playBubblePointOne();
                         },
                         onShowAbout: _showAbout,
+                        onLanguageChange: _changeLanguage,
                       ),
                     ),
                   ],
@@ -288,11 +310,13 @@ class _SettingsPanel extends StatelessWidget {
     required this.musicVolume,
     required this.webViewVolume,
     required this.isLoading,
+    required this.currentLanguage,
     required this.onShowTutorial,
     required this.onMusicVolumeChange,
     required this.onWebViewVolumeChange,
     required this.onWebViewVolumeChangeEnd,
     required this.onShowAbout,
+    required this.onLanguageChange,
   });
 
   final double width;
@@ -301,11 +325,13 @@ class _SettingsPanel extends StatelessWidget {
   final double musicVolume;
   final double webViewVolume;
   final bool isLoading;
+  final String currentLanguage;
   final VoidCallback onShowTutorial;
   final ValueChanged<double> onMusicVolumeChange;
   final ValueChanged<double> onWebViewVolumeChange;
   final VoidCallback onWebViewVolumeChangeEnd;
   final VoidCallback onShowAbout;
+  final ValueChanged<String> onLanguageChange;
 
   @override
   Widget build(BuildContext context) {
@@ -361,7 +387,7 @@ class _SettingsPanel extends StatelessWidget {
                   ),
                   SizedBox(width: titleFont * 0.3),
                   Text(
-                    'SETTINGS',
+                    AppLocalizations.of(context)!.settingsTitle.toUpperCase(),
                     style: GoogleFonts.titanOne(
                       fontSize: titleFont * 0.75,
                       color: const Color(0xFFF4FDFF),
@@ -407,7 +433,7 @@ class _SettingsPanel extends StatelessWidget {
                       children: [
                         _SettingsTile(
                           icon: Icons.school_outlined,
-                          title: 'Show Tutorial',
+                          title: AppLocalizations.of(context)!.settingsTutorial,
                           subtitle: 'Replay the interactive tutorial',
                           trailing: const Icon(
                             Icons.chevron_right,
@@ -420,7 +446,9 @@ class _SettingsPanel extends StatelessWidget {
                         // Music Volume
                         _SliderTile(
                           icon: Icons.music_note_outlined,
-                          title: 'Background Music Volume',
+                          title: AppLocalizations.of(
+                            context,
+                          )!.settingsMusicVolume,
                           value: musicVolume,
                           min: 0.0,
                           max: 1.0,
@@ -433,7 +461,9 @@ class _SettingsPanel extends StatelessWidget {
                         // WebView Volume
                         _SliderTile(
                           icon: Icons.videogame_asset_outlined,
-                          title: 'Game Audio Volume',
+                          title: AppLocalizations.of(
+                            context,
+                          )!.settingsSoundVolume,
                           value: webViewVolume,
                           min: 0.0,
                           max: 1.0,
@@ -444,10 +474,83 @@ class _SettingsPanel extends StatelessWidget {
                         ),
                         SizedBox(height: panelPadding),
 
+                        // Language selector
+                        _SettingsTile(
+                          icon: Icons.language,
+                          title: AppLocalizations.of(context)!.settingsLanguage,
+                          subtitle: currentLanguage == 'en'
+                              ? AppLocalizations.of(context)!.languageEnglish
+                              : AppLocalizations.of(
+                                  context,
+                                )!.languageIndonesian,
+                          trailing: PopupMenuButton<String>(
+                            icon: const Icon(
+                              Icons.arrow_drop_down,
+                              color: Color(0xFF64E7FF),
+                            ),
+                            color: const Color(0xFF0F1D3C),
+                            onSelected: onLanguageChange,
+                            itemBuilder: (BuildContext context) =>
+                                <PopupMenuEntry<String>>[
+                                  PopupMenuItem<String>(
+                                    value: 'en',
+                                    child: Row(
+                                      children: [
+                                        if (currentLanguage == 'en')
+                                          const Icon(
+                                            Icons.check,
+                                            color: Color(0xFF64E7FF),
+                                            size: 20,
+                                          )
+                                        else
+                                          const SizedBox(width: 20),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.languageEnglish,
+                                          style: GoogleFonts.inter(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem<String>(
+                                    value: 'id',
+                                    child: Row(
+                                      children: [
+                                        if (currentLanguage == 'id')
+                                          const Icon(
+                                            Icons.check,
+                                            color: Color(0xFF64E7FF),
+                                            size: 20,
+                                          )
+                                        else
+                                          const SizedBox(width: 20),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.languageIndonesian,
+                                          style: GoogleFonts.inter(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                          ),
+                          onTap: null,
+                        ),
+                        SizedBox(height: panelPadding),
+
                         _SettingsTile(
                           icon: Icons.info_outline,
-                          title: 'About',
-                          subtitle: 'Astroid Code Craft v1.0.0',
+                          title: AppLocalizations.of(context)!.settingsAbout,
+                          subtitle:
+                              '${AppLocalizations.of(context)!.aboutAppName} v${AppLocalizations.of(context)!.aboutVersion}',
                           trailing: const Icon(
                             Icons.chevron_right,
                             color: Color(0xFF64E7FF),
