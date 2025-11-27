@@ -232,18 +232,50 @@ class _HomeScreenState extends State<HomeScreen> {
                   builder: (context, c) {
                     final w = c.maxWidth;
                     final h = c.maxHeight;
+                    final isSmall = w < 900;
+                    final isMedium = w < 1000;
 
                     // Skala responsif (selaras dengan splash)
-                    final topNavW = math.min(w * 0.7, 650.0);
-                    final topNavH = math.min(h * 0.15, 72.0);
+                    final topNavW = math.min(w * (isSmall ? 0.9 : 0.72), 720.0);
+                    final topNavH = math.min(
+                      h * (isSmall ? 0.16 : 0.14),
+                      isSmall ? 82.0 : 88.0,
+                    );
+                    final navAlignY = isSmall ? -0.7 : -0.58;
 
-                    final panelW = math.min(w * 0.78, 960.0);
-                    final panelH = math.min(h * 0.56, 380.0);
+                    final panelW = math.min(w * (isSmall ? 0.9 : 0.78), 980.0);
+                    final panelH = math.min(
+                      h *
+                          (isSmall
+                              ? 0.58
+                              : isMedium
+                              ? 0.55
+                              : 0.48),
+                      isSmall ? 440.0 : 480.0,
+                    );
+                    final panelAlignY = isSmall
+                        ? 0.4
+                        : isMedium
+                        ? 0.5
+                        : 0.3;
 
                     final subtitleFont = math.min(w * 0.03, 20.0);
 
-                    final ctaW = math.min(w * 0.22, 320.0);
-                    final ctaH = math.min(h * 0.10, 64.0);
+                    final ctaW = math.min(
+                      w * (isSmall ? 0.25 : 0.26),
+                      isSmall ? 260.0 : 340.0,
+                    );
+                    final ctaH = math.min(
+                      h * (isSmall ? 0.10 : 0.095),
+                      isSmall ? 60.0 : 70.0,
+                    );
+                    final ctaSpacing = ctaW * 0.08;
+                    final ctaRunSpacing = ctaH * (isSmall ? 0.20 : 0.30);
+                    final mascotHeight = math.min(
+                      h * (isSmall ? 0.36 : 0.42),
+                      w * 0.55,
+                    );
+                    final mascotOffset = mascotHeight * (isSmall ? 0.35 : 0.3);
                     final canContinueJourney =
                         !_isLoading && _projects.isNotEmpty;
 
@@ -305,6 +337,43 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     return Stack(
                       children: [
+                        // 2) Top segmented nav
+                        Align(
+                          alignment: Alignment(0, navAlignY),
+                          child: _TopSegmentedNav(
+                            width: topNavW,
+                            height: topNavH,
+                            onTapHome: onHomeTap,
+                            onTapCode: onCodeTap,
+                            onTapChallenges: onChallengesTap,
+                            onTapConnect: onConnectTap,
+                            navHomeKey: _navHomeKey,
+                            navCodeKey: _navCodeKey,
+                            navChallengesKey: _navChallengesKey,
+                            navConnectKey: _navConnectKey,
+                          ),
+                        ),
+
+                        // 3) Panel tengah (galaxy card)
+                        Align(
+                          alignment: Alignment(0, panelAlignY),
+                          child: _GalaxyPanel(
+                            width: panelW,
+                            height: panelH,
+                            subtitleFont: subtitleFont,
+                            ctaWidth: ctaW,
+                            ctaHeight: ctaH,
+                            buttonSpacing: ctaSpacing,
+                            runSpacing: ctaRunSpacing,
+                            canContinueJourney: canContinueJourney,
+                            onCreateAdventureTap: onCreateAdventureTap,
+                            onContinueJourneyTap: onContinueJourneyTap,
+                            onMissionControlTap: onMissionControlTap,
+                            createAdventureKey: _createAdventureKey,
+                            continueJourneyKey: _continueJourneyKey,
+                            missionControlKey: _missionControlKey,
+                          ),
+                        ),
                         Positioned(
                           right: 16,
                           bottom: 16,
@@ -334,42 +403,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                           ),
                         ),
-
-                        // 2) Top segmented nav
-                        Align(
-                          alignment: const Alignment(0, -0.7),
-                          child: _TopSegmentedNav(
-                            width: topNavW,
-                            height: topNavH,
-                            onTapHome: onHomeTap,
-                            onTapCode: onCodeTap,
-                            onTapChallenges: onChallengesTap,
-                            onTapConnect: onConnectTap,
-                            navHomeKey: _navHomeKey,
-                            navCodeKey: _navCodeKey,
-                            navChallengesKey: _navChallengesKey,
-                            navConnectKey: _navConnectKey,
-                          ),
-                        ),
-
-                        // 3) Panel tengah (galaxy card)
-                        Align(
-                          alignment: const Alignment(0, 0.5),
-                          child: _GalaxyPanel(
-                            width: panelW,
-                            height: panelH,
-                            subtitleFont: subtitleFont,
-                            ctaWidth: ctaW,
-                            ctaHeight: ctaH,
-                            canContinueJourney: canContinueJourney,
-                            onCreateAdventureTap: onCreateAdventureTap,
-                            onContinueJourneyTap: onContinueJourneyTap,
-                            onMissionControlTap: onMissionControlTap,
-                            createAdventureKey: _createAdventureKey,
-                            continueJourneyKey: _continueJourneyKey,
-                            missionControlKey: _missionControlKey,
-                          ),
-                        ),
                       ],
                     );
                   },
@@ -377,16 +410,31 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          Positioned(
-            left: 0,
-            bottom: -20 * 4,
-            child: SizedBox(
-              height: MediaQuery.of(context).size.height * 0.5,
-              child: Image.asset(
-                'assets/brand/mascotnobg.png',
-                fit: BoxFit.contain,
-              ),
-            ),
+          // Mascot positioned relative to screen size (compute locally to avoid undefined names)
+          Builder(
+            builder: (context) {
+              final w = MediaQuery.of(context).size.width;
+              final h = MediaQuery.of(context).size.height;
+              final isSmall = w < 900;
+              final mascotHeight = math.min(
+                h * (isSmall ? 0.36 : 0.42),
+                w * 0.55,
+              );
+              final mascotOffset = mascotHeight * (isSmall ? 0.35 : 0.3);
+              return Positioned(
+                left: -mascotOffset,
+                bottom: -mascotOffset * 0.9,
+                child: IgnorePointer(
+                  child: SizedBox(
+                    height: mascotHeight,
+                    child: Image.asset(
+                      'assets/brand/mascotnobg.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -688,8 +736,9 @@ class _NavPill extends StatelessWidget {
         ? const Color(0xFFA7F8FF)
         : const Color.fromARGB(166, 139, 216, 255);
 
+    final isSmall = MediaQuery.of(context).size.width < 900;
     final textStyle = GoogleFonts.titanOne(
-      fontSize: height * 0.25,
+      fontSize: isSmall ? height * 0.2 : height * 0.26,
       color: Colors.white,
       letterSpacing: 0.2,
     );
@@ -735,6 +784,8 @@ class _GalaxyPanel extends StatelessWidget {
     required this.subtitleFont,
     required this.ctaWidth,
     required this.ctaHeight,
+    required this.buttonSpacing,
+    required this.runSpacing,
     required this.canContinueJourney,
     required this.onCreateAdventureTap,
     required this.onContinueJourneyTap,
@@ -749,6 +800,8 @@ class _GalaxyPanel extends StatelessWidget {
   final double subtitleFont;
   final double ctaWidth;
   final double ctaHeight;
+  final double buttonSpacing;
+  final double runSpacing;
   final bool canContinueJourney;
   final VoidCallback onCreateAdventureTap;
   final VoidCallback? onContinueJourneyTap;
@@ -762,11 +815,9 @@ class _GalaxyPanel extends StatelessWidget {
     final shortestSide = math.min(width, height);
     final outerRadius = BorderRadius.circular(shortestSide * 0.08);
     final innerRadius = BorderRadius.circular(shortestSide * 0.07);
-    final panelPadding = shortestSide * 0.05;
-    final logoVisualWidth = math.min(width * 0.6, height * 0.8);
-    final logoSlotHeight = height * 0.18;
-    final buttonSpacing = ctaWidth * 0.08;
-    final runSpacing = ctaHeight * 0.35;
+    final panelPadding = shortestSide * 0.045;
+    final logoVisualWidth = math.min(width * 0.58, height * 0.7);
+    final logoSlotHeight = height * 0.16;
 
     return Container(
       width: width,
@@ -840,9 +891,11 @@ class _GalaxyPanel extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(height: height * 0.08),
+            SizedBox(height: height * 0.06),
             Wrap(
               alignment: WrapAlignment.center,
+              runAlignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
               spacing: buttonSpacing,
               runSpacing: runSpacing,
               children: [
@@ -1026,8 +1079,9 @@ class _CTAButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(height * 0.5);
+    final isSmall = MediaQuery.of(context).size.width < 600;
     final textStyle = GoogleFonts.titanOne(
-      fontSize: height * 0.28,
+      fontSize: isSmall ? height * 0.2 : height * 0.26,
       letterSpacing: 0.2,
       color: const Color(0xFF11203D),
     );
