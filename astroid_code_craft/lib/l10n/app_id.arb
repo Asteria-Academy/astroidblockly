@@ -131,7 +131,7 @@
     "description": "Label tombol buat petualangan"
   },
 
-  "btnContinueJourney": "LANJUTKAN PERJALANAN",
+  "btnContinueJourney": "LANJUTKAN",
   "@btnContinueJourney": {
     "description": "Label tombol lanjutkan perjalanan"
   },
@@ -199,5 +199,315 @@
   "languageIndonesian": "Bahasa Indonesia",
   "@languageIndonesian": {
     "description": "Opsi bahasa Indonesia"
+  },
+
+  "challengeModeTitle": "Mode Tantangan",
+  "@challengeModeTitle": {
+    "description": "Judul layar mode tantangan"
+  },
+
+  "levelFirstSteps": "Langkah Pertama",
+  "@levelFirstSteps": {
+    "description": "Nama level 1"
+  },
+
+  "levelFirstStepsDesc": "Belajar bergerak maju",
+  "@levelFirstStepsDesc": {
+    "description": "Deskripsi level 1"
+  },
+
+  "levelMakingTurn": "Berbelok",
+  "@levelMakingTurn": {
+    "description": "Nama level 2"
+  },
+
+  "levelMakingTurnDesc": "Navigasi di sudut",
+  "@levelMakingTurnDesc": {
+    "description": "Deskripsi level 2"
+  },
+
+  "levelSquareDance": "Tarian Kotak",
+  "@levelSquareDance": {
+    "description": "Nama level 3"
+  },
+
+  "levelSquareDanceDesc": "Gunakan loop untuk membuat kotak",
+  "@levelSquareDanceDesc": {
+    "description": "Deskripsi level 3"
+  },
+
+  "levelShuttleRun": "Lari Bolak-Balik",
+  "@levelShuttleRun": {
+    "description": "Nama level 4"
+  },
+
+  "levelShuttleRunDesc": "Pergi dan kembali ke awal",
+  "@levelShuttleRunDesc": {
+    "description": "Deskripsi level 4"
+  },
+
+  "levelDontHitWall": "Jangan Tabrak Dinding!",
+  "@levelDontHitWall": {
+    "description": "Nama level 5"
+  },
+
+  "levelDontHitWallDesc": "Gunakan sensor untuk hindari rintangan",
+  "@levelDontHitWallDesc": {
+    "description": "Deskripsi level 5"
+  },
+
+  "levelTheMaze": "Labirin",
+  "@levelTheMaze": {
+    "description": "Nama level 6"
+  },
+
+  "levelTheMazeDesc": "Navigasi labirin yang kompleks",
+  "@levelTheMazeDesc": {
+    "description": "Deskripsi level 6"
+  },
+
+  "difficultyEasy": "Mudah",
+  "@difficultyEasy": {
+    "description": "Label tingkat kesulitan mudah"
+  },
+
+  "difficultyMedium": "Sedang",
+  "@difficultyMedium": {
+    "description": "Label tingkat kesulitan sedang"
+  },
+
+  "difficultyHard": "Sulit",
+  "@difficultyHard": {
+    "description": "Label tingkat kesulitan sulit"
+  },
+
+  "missionControlTitle": "Kontrol Misi",
+  "@missionControlTitle": {
+    "description": "Judul layar kontrol misi"
+  },
+
+  "noProjectsMessage": "Belum ada petualangan yang dibuat.\nKembali dan Buat Petualangan!",
+  "@noProjectsMessage": {
+    "description": "Pesan ditampilkan ketika tidak ada proyek"
+  },
+
+  "dialogDeleteTitle": "Hapus Proyek?",
+  "@dialogDeleteTitle": {
+    "description": "Judul dialog konfirmasi hapus"
+  },
+
+  "dialogDeleteMessage": "Tindakan ini tidak dapat dibatalkan.",
+  "@dialogDeleteMessage": {
+    "description": "Pesan dialog konfirmasi hapus"
+  },
+
+  "dialogRenameTitle": "Ganti Nama Proyek",
+  "@dialogRenameTitle": {
+    "description": "Judul dialog ganti nama"
+  },
+
+  "dialogRenameHint": "Masukkan nama baru",
+  "@dialogRenameHint": {
+    "description": "Teks petunjuk untuk field input ganti nama"
+  },
+
+  "btnCancel": "Batal",
+  "@btnCancel": {
+    "description": "Teks tombol batal"
+  },
+
+  "btnDelete": "Hapus",
+  "@btnDelete": {
+    "description": "Teks tombol hapus"
+  },
+
+  "btnSave": "Simpan",
+  "@btnSave": {
+    "description": "Teks tombol simpan"
+  },
+
+  "btnRename": "Ganti Nama",
+  "@btnRename": {
+    "description": "Teks tombol ganti nama"
+  },
+
+  "btnLoad": "Muat",
+  "@btnLoad": {
+    "description": "Teks tombol muat"
+  },
+
+  "lastModified": "Terakhir diubah",
+  "@lastModified": {
+    "description": "Label terakhir diubah"
+  },
+
+  "settingsTutorialDesc": "Mainkan ulang tutorial interaktif",
+  "@settingsTutorialDesc": {
+    "description": "Deskripsi untuk pengaturan tutorial"
+  },
+
+  "connectTitle": "Hubungkan ke Robot",
+  "@connectTitle": {
+    "description": "Judul layar hubungkan"
+  },
+
+  "connectSuccessMessage": "Berhasil terhubung ke {deviceName}",
+  "@connectSuccessMessage": {
+    "description": "Pesan sukses ketika terhubung ke perangkat",
+    "placeholders": {
+      "deviceName": {
+        "type": "String"
+      }
+    }
+  },
+
+  "connectFailedMessage": "Koneksi gagal. Silakan coba lagi.",
+  "@connectFailedMessage": {
+    "description": "Pesan koneksi gagal"
+  },
+
+  "connectConnectedTo": "Terhubung ke: {deviceName}",
+  "@connectConnectedTo": {
+    "description": "Label perangkat yang terhubung",
+    "placeholders": {
+      "deviceName": {
+        "type": "String"
+      }
+    }
+  },
+
+  "connectBattery": "Baterai: {level}%",
+  "@connectBattery": {
+    "description": "Label level baterai",
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+
+  "connectDisconnect": "Putuskan",
+  "@connectDisconnect": {
+    "description": "Teks tombol putuskan koneksi"
+  },
+
+  "connectRobotReady": "Robot Siap!",
+  "@connectRobotReady": {
+    "description": "Pesan robot siap"
+  },
+
+  "connectGoBack": "Kembali dan mulai petualanganmu.",
+  "@connectGoBack": {
+    "description": "Instruksi untuk kembali setelah terhubung"
+  },
+
+  "connectSearching": "Mencari robot Astroid...",
+  "@connectSearching": {
+    "description": "Pesan pencarian"
+  },
+
+  "connectNoRobots": "Tidak Ada Robot Ditemukan",
+  "@connectNoRobots": {
+    "description": "Pesan tidak ada robot ditemukan"
+  },
+
+  "connectMakeSure": "Pastikan robotmu sudah menyala dan tekan Pindai.",
+  "@connectMakeSure": {
+    "description": "Instruksi ketika tidak ada robot ditemukan"
+  },
+
+  "connectScanning": "Memindai...",
+  "@connectScanning": {
+    "description": "Teks status memindai"
+  },
+
+  "connectScanButton": "Pindai Robot",
+  "@connectScanButton": {
+    "description": "Teks tombol pindai"
+  },
+
+  "connectSignalStrength": "{rssi} dBm",
+  "@connectSignalStrength": {
+    "description": "Tampilan kekuatan sinyal",
+    "placeholders": {
+      "rssi": {
+        "type": "int"
+      }
+    }
+  },
+
+  "connectingTitle": "Menghubungkan...",
+  "@connectingTitle": {
+    "description": "Judul layar menghubungkan"
+  },
+
+  "connectingTo": "Membuat koneksi dengan {deviceName}",
+  "@connectingTo": {
+    "description": "Pesan menghubungkan",
+    "placeholders": {
+      "deviceName": {
+        "type": "String"
+      }
+    }
+  },
+
+  "connectingSuccess": "Berhasil Terhubung!",
+  "@connectingSuccess": {
+    "description": "Pesan sukses"
+  },
+
+  "connectingSuccessTo": "Terhubung ke {deviceName}",
+  "@connectingSuccessTo": {
+    "description": "Pesan sukses dengan nama perangkat",
+    "placeholders": {
+      "deviceName": {
+        "type": "String"
+      }
+    }
+  },
+
+  "connectingFailed": "Koneksi Gagal",
+  "@connectingFailed": {
+    "description": "Pesan gagal"
+  },
+
+  "connectingFailedReason": "Tidak dapat terhubung ke robot.",
+  "@connectingFailedReason": {
+    "description": "Pesan alasan gagal"
+  },
+
+  "connectingGoBack": "Kembali",
+  "@connectingGoBack": {
+    "description": "Tombol kembali"
+  },
+
+  "connectingCancel": "Batal",
+  "@connectingCancel": {
+    "description": "Tombol batal"
+  },
+
+  "codeChatTitle": "Astroid CodeCraft",
+  "@codeChatTitle": {
+    "description": "Judul layar code chat"
+  },
+
+  "codeChatBlocks": "Blok 3D",
+  "@codeChatBlocks": {
+    "description": "Label tab Blok 3D"
+  },
+
+  "codeChatAI": "Chat AI",
+  "@codeChatAI": {
+    "description": "Label tab Chat AI"
+  },
+
+  "codeChatPlaceholder": "// Kode robotmu di sini...",
+  "@codeChatPlaceholder": {
+    "description": "Teks placeholder editor kode"
+  },
+
+  "codeChatInputHint": "Chat dengan AstroidBot...",
+  "@codeChatInputHint": {
+    "description": "Teks petunjuk input chat"
   }
 }

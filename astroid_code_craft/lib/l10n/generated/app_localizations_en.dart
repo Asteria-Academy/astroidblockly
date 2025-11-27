@@ -135,4 +135,186 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get languageIndonesian => 'Indonesian';
+
+  @override
+  String get challengeModeTitle => 'Challenge Mode';
+
+  @override
+  String get levelFirstSteps => 'First Steps';
+
+  @override
+  String get levelFirstStepsDesc => 'Learn to move forward';
+
+  @override
+  String get levelMakingTurn => 'Making a Turn';
+
+  @override
+  String get levelMakingTurnDesc => 'Navigate a corner';
+
+  @override
+  String get levelSquareDance => 'The Square Dance';
+
+  @override
+  String get levelSquareDanceDesc => 'Use loops to trace a square';
+
+  @override
+  String get levelShuttleRun => 'Shuttle Run';
+
+  @override
+  String get levelShuttleRunDesc => 'Go and return to start';
+
+  @override
+  String get levelDontHitWall => 'Don\'t Hit The Wall!';
+
+  @override
+  String get levelDontHitWallDesc => 'Use sensors to avoid obstacles';
+
+  @override
+  String get levelTheMaze => 'The Maze';
+
+  @override
+  String get levelTheMazeDesc => 'Navigate a complex maze';
+
+  @override
+  String get difficultyEasy => 'Easy';
+
+  @override
+  String get difficultyMedium => 'Medium';
+
+  @override
+  String get difficultyHard => 'Hard';
+
+  @override
+  String get missionControlTitle => 'Mission Control';
+
+  @override
+  String get noProjectsMessage =>
+      'No adventures created yet.\nGo back and Create Adventure!';
+
+  @override
+  String get dialogDeleteTitle => 'Delete Project?';
+
+  @override
+  String get dialogDeleteMessage => 'This action cannot be undone.';
+
+  @override
+  String get dialogRenameTitle => 'Rename Project';
+
+  @override
+  String get dialogRenameHint => 'Enter new name';
+
+  @override
+  String get btnCancel => 'Cancel';
+
+  @override
+  String get btnDelete => 'Delete';
+
+  @override
+  String get btnSave => 'Save';
+
+  @override
+  String get btnRename => 'Rename';
+
+  @override
+  String get btnLoad => 'Load';
+
+  @override
+  String get lastModified => 'Last modified';
+
+  @override
+  String get settingsTutorialDesc => 'Replay the interactive tutorial';
+
+  @override
+  String get connectTitle => 'Connect to Robot';
+
+  @override
+  String connectSuccessMessage(String deviceName) {
+    return 'Successfully connected to $deviceName';
+  }
+
+  @override
+  String get connectFailedMessage => 'Connection failed. Please try again.';
+
+  @override
+  String connectConnectedTo(String deviceName) {
+    return 'Connected to: $deviceName';
+  }
+
+  @override
+  String connectBattery(int level) {
+    return 'Battery: $level%';
+  }
+
+  @override
+  String get connectDisconnect => 'Disconnect';
+
+  @override
+  String get connectRobotReady => 'Robot is Ready!';
+
+  @override
+  String get connectGoBack => 'Go back and start your adventure.';
+
+  @override
+  String get connectSearching => 'Searching for Astroid robots...';
+
+  @override
+  String get connectNoRobots => 'No Robots Found';
+
+  @override
+  String get connectMakeSure =>
+      'Make sure your robot is turned on and press Scan.';
+
+  @override
+  String get connectScanning => 'Scanning...';
+
+  @override
+  String get connectScanButton => 'Scan for Robots';
+
+  @override
+  String connectSignalStrength(int rssi) {
+    return '$rssi dBm';
+  }
+
+  @override
+  String get connectingTitle => 'Connecting...';
+
+  @override
+  String connectingTo(String deviceName) {
+    return 'Establishing link with $deviceName';
+  }
+
+  @override
+  String get connectingSuccess => 'Successfully Connected!';
+
+  @override
+  String connectingSuccessTo(String deviceName) {
+    return 'Connected to $deviceName';
+  }
+
+  @override
+  String get connectingFailed => 'Connection Failed';
+
+  @override
+  String get connectingFailedReason => 'Could not connect to the robot.';
+
+  @override
+  String get connectingGoBack => 'Go Back';
+
+  @override
+  String get connectingCancel => 'Cancel';
+
+  @override
+  String get codeChatTitle => 'Astroid CodeCraft';
+
+  @override
+  String get codeChatBlocks => '3D Blocks';
+
+  @override
+  String get codeChatAI => 'Chat AI';
+
+  @override
+  String get codeChatPlaceholder => '// Your robot code goes here...';
+
+  @override
+  String get codeChatInputHint => 'Chat with AstroidBot...';
 }

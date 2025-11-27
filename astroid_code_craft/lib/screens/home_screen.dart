@@ -96,27 +96,26 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _startShowcase() async {
-    debugPrint('🎯 _startShowcase called');
-    await Future.delayed(const Duration(milliseconds: 300));
-    debugPrint('🎯 After delay, mounted=$mounted');
-    if (mounted) {
+  void _startShowcase() {
+    debugPrint('🎯 _startShowcase called, mounted=$mounted');
+    if (!mounted) {
+      debugPrint('🎯 Cannot start showcase: widget not mounted');
+      return;
+    }
+
+    try {
       debugPrint('🎯 Starting showcase now!');
-      try {
-        ShowcaseView.get().startShowCase([
-          _navHomeKey,
-          _navCodeKey,
-          _navChallengesKey,
-          _navConnectKey,
-          _createAdventureKey,
-          _continueJourneyKey,
-          _missionControlKey,
-        ]);
-      } catch (e) {
-        debugPrint('🎯 Error starting showcase: $e');
-      }
-    } else {
-      debugPrint('🎯 Cannot start showcase: mounted=$mounted');
+      ShowcaseView.get().startShowCase([
+        _navHomeKey,
+        _navCodeKey,
+        _navChallengesKey,
+        _navConnectKey,
+        _createAdventureKey,
+        _continueJourneyKey,
+        _missionControlKey,
+      ]);
+    } catch (e) {
+      debugPrint('🎯 Error starting showcase: $e');
     }
   }
 
@@ -319,12 +318,17 @@ class _HomeScreenState extends State<HomeScreen> {
                               debugPrint(
                                 '🎯 Returned from settings, result=$result',
                               );
-                              // If result is true, show the tutorial
-                              if (result == true && mounted) {
+
+                              if (!mounted) return;
+
+                              if (result == true) {
                                 debugPrint(
                                   '🎯 Result is true, calling _startShowcase',
                                 );
-                                await _startShowcase();
+                                await Future.delayed(
+                                  const Duration(milliseconds: 300),
+                                );
+                                if (mounted) _startShowcase();
                               }
                             },
                           ),

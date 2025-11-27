@@ -1,4 +1,5 @@
 // lib/services/preferences_service.dart
+import 'dart:ui' as ui;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PreferencesService {
@@ -6,6 +7,7 @@ class PreferencesService {
   static const String _keyMusicEnabled = 'music_enabled';
   static const String _keyMusicVolume = 'music_volume';
   static const String _keyWebViewVolume = 'webview_volume';
+  static const String _keyLanguageInitialized = 'language_initialized';
 
   static PreferencesService? _instance;
   static SharedPreferences? _prefs;
@@ -16,6 +18,14 @@ class PreferencesService {
     if (_instance == null) {
       _instance = PreferencesService._();
       _prefs = await SharedPreferences.getInstance();
+
+      final isInitialized = _prefs?.getBool(_keyLanguageInitialized) ?? false;
+      if (!isInitialized) {
+        final systemLocale = ui.PlatformDispatcher.instance.locale.languageCode;
+        final defaultLanguage = systemLocale == 'id' ? 'id' : 'en';
+        await _prefs?.setString('language', defaultLanguage);
+        await _prefs?.setBool(_keyLanguageInitialized, true);
+      }
     }
     return _instance!;
   }

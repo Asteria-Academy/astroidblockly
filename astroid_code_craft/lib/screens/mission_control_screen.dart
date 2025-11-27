@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/project.dart';
 import '../router/app_router.dart';
+import '../l10n/generated/app_localizations.dart';
 
 class MissionControlScreen extends StatefulWidget {
   const MissionControlScreen({
@@ -35,18 +36,19 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
   }
 
   Future<void> _handleDelete(String projectId) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Delete Project?"),
-        content: Text("This action cannot be undone."),
+        title: Text(l10n.dialogDeleteTitle),
+        content: Text(l10n.dialogDeleteMessage),
         actions: [
           TextButton(
-            child: Text("Cancel"),
+            child: Text(l10n.btnCancel),
             onPressed: () => Navigator.pop(context, false),
           ),
           TextButton(
-            child: Text("Delete"),
+            child: Text(l10n.btnDelete),
             onPressed: () => Navigator.pop(context, true),
           ),
         ],
@@ -65,25 +67,26 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
   }
 
   Future<void> _handleRename(String projectId, String currentName) async {
+    final l10n = AppLocalizations.of(context)!;
     final TextEditingController nameController = TextEditingController(
       text: currentName,
     );
     final String? newName = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Rename Project"),
+        title: Text(l10n.dialogRenameTitle),
         content: TextField(
           controller: nameController,
           autofocus: true,
-          decoration: InputDecoration(hintText: "Enter new name"),
+          decoration: InputDecoration(hintText: l10n.dialogRenameHint),
         ),
         actions: [
           TextButton(
-            child: Text("Cancel"),
+            child: Text(l10n.btnCancel),
             onPressed: () => Navigator.pop(context),
           ),
           TextButton(
-            child: Text("Save"),
+            child: Text(l10n.btnSave),
             onPressed: () {
               if (nameController.text.isNotEmpty) {
                 Navigator.pop(context, nameController.text);
@@ -134,10 +137,11 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFF0B1433),
       appBar: AppBar(
-        title: Text('Mission Control', style: GoogleFonts.titanOne()),
+        title: Text(l10n.missionControlTitle, style: GoogleFonts.titanOne()),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -147,7 +151,7 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
           child: _currentProjects.isEmpty
               ? Center(
                   child: Text(
-                    "No adventures created yet.\nGo back and Create Adventure!",
+                    l10n.noProjectsMessage,
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 16, color: Colors.white70),
                   ),
@@ -185,6 +189,10 @@ class _MissionControlScreenState extends State<MissionControlScreen> {
                           onRename: () =>
                               _handleRename(project.id, project.name),
                           onDelete: () => _handleDelete(project.id),
+                          btnLoad: l10n.btnLoad,
+                          btnRename: l10n.btnRename,
+                          btnDelete: l10n.btnDelete,
+                          lastModifiedPrefix: l10n.lastModified,
                         );
                       },
                     );
@@ -204,6 +212,10 @@ class _ProjectCard extends StatelessWidget {
     required this.onOpen,
     required this.onRename,
     required this.onDelete,
+    required this.btnLoad,
+    required this.btnRename,
+    required this.btnDelete,
+    required this.lastModifiedPrefix,
   });
 
   final Project project;
@@ -212,6 +224,10 @@ class _ProjectCard extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onRename;
   final VoidCallback onDelete;
+  final String btnLoad;
+  final String btnRename;
+  final String btnDelete;
+  final String lastModifiedPrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -298,7 +314,7 @@ class _ProjectCard extends StatelessWidget {
                                 size: 18,
                               ),
                               label: Text(
-                                'OPEN',
+                                btnLoad,
                                 style: GoogleFonts.titanOne(
                                   fontSize: 14,
                                   letterSpacing: 0.8,
@@ -319,7 +335,7 @@ class _ProjectCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Tooltip(
-                            message: 'Rename Adventure',
+                            message: btnRename,
                             child: IconButton(
                               onPressed: onRename,
                               icon: const Icon(Icons.drive_file_rename_outline),
@@ -327,7 +343,7 @@ class _ProjectCard extends StatelessWidget {
                             ),
                           ),
                           Tooltip(
-                            message: 'Delete Adventure',
+                            message: btnDelete,
                             child: IconButton(
                               onPressed: onDelete,
                               icon: const Icon(Icons.delete_outline),

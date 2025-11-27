@@ -12,6 +12,7 @@ import '../models/chat_message.dart';
 import '../models/agentic_response.dart';
 import '../config/app_prompts.dart';
 import '../router/app_router.dart';
+import '../l10n/generated/app_localizations.dart';
 
 class CodeChatScreen extends StatelessWidget {
   const CodeChatScreen({super.key});
@@ -22,7 +23,7 @@ class CodeChatScreen extends StatelessWidget {
       backgroundColor: const Color(0xFF0B1433), // Theme: Main BG
       appBar: AppBar(
         // Theme: AppBar Style
-        title: Text('Astroid CodeCraft', style: GoogleFonts.titanOne()),
+        title: Text(AppLocalizations.of(context)!.codeChatTitle, style: GoogleFonts.titanOne()),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -105,13 +106,13 @@ class _EditorModeToggle extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _EditorToggleChip(
-            label: '3D Blocks',
+            label: AppLocalizations.of(context)!.codeChatBlocks,
             isActive: isBlocksActive,
             onTap: isBlocksActive ? null : onBlocksSelected,
           ),
           const SizedBox(width: 4),
           _EditorToggleChip(
-            label: 'Chat AI',
+            label: AppLocalizations.of(context)!.codeChatAI,
             isActive: isChatActive,
             onTap: null,
           ),
@@ -187,7 +188,7 @@ class _CodeEditorPlaceholder extends StatelessWidget {
         style: GoogleFonts.firaCode(fontSize: 14, color: Colors.white),
         decoration: InputDecoration(
           border: InputBorder.none,
-          hintText: '// Your robot code goes here...',
+          hintText: AppLocalizations.of(context)!.codeChatPlaceholder,
           hintStyle: GoogleFonts.firaCode(
             fontSize: 14,
             color: Colors.white70, // Theme: Subtitle/Hint text
@@ -414,10 +415,10 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
           Expanded(
             child: TextField(
               controller: _textController,
-              style: TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: "Chat with AstroidBot...",
-                hintStyle: TextStyle(color: Colors.white70),
+                hintText: AppLocalizations.of(context)!.codeChatInputHint,
+                hintStyle: const TextStyle(color: Colors.white70),
                 border: InputBorder.none,
               ),
               onSubmitted: _handleUserSubmit,

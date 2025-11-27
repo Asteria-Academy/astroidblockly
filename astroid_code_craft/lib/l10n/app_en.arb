@@ -199,5 +199,315 @@
   "languageIndonesian": "Indonesian",
   "@languageIndonesian": {
     "description": "Indonesian language option"
+  },
+
+  "challengeModeTitle": "Challenge Mode",
+  "@challengeModeTitle": {
+    "description": "Title for challenge mode screen"
+  },
+
+  "levelFirstSteps": "First Steps",
+  "@levelFirstSteps": {
+    "description": "Level 1 name"
+  },
+
+  "levelFirstStepsDesc": "Learn to move forward",
+  "@levelFirstStepsDesc": {
+    "description": "Level 1 description"
+  },
+
+  "levelMakingTurn": "Making a Turn",
+  "@levelMakingTurn": {
+    "description": "Level 2 name"
+  },
+
+  "levelMakingTurnDesc": "Navigate a corner",
+  "@levelMakingTurnDesc": {
+    "description": "Level 2 description"
+  },
+
+  "levelSquareDance": "The Square Dance",
+  "@levelSquareDance": {
+    "description": "Level 3 name"
+  },
+
+  "levelSquareDanceDesc": "Use loops to trace a square",
+  "@levelSquareDanceDesc": {
+    "description": "Level 3 description"
+  },
+
+  "levelShuttleRun": "Shuttle Run",
+  "@levelShuttleRun": {
+    "description": "Level 4 name"
+  },
+
+  "levelShuttleRunDesc": "Go and return to start",
+  "@levelShuttleRunDesc": {
+    "description": "Level 4 description"
+  },
+
+  "levelDontHitWall": "Don't Hit The Wall!",
+  "@levelDontHitWall": {
+    "description": "Level 5 name"
+  },
+
+  "levelDontHitWallDesc": "Use sensors to avoid obstacles",
+  "@levelDontHitWallDesc": {
+    "description": "Level 5 description"
+  },
+
+  "levelTheMaze": "The Maze",
+  "@levelTheMaze": {
+    "description": "Level 6 name"
+  },
+
+  "levelTheMazeDesc": "Navigate a complex maze",
+  "@levelTheMazeDesc": {
+    "description": "Level 6 description"
+  },
+
+  "difficultyEasy": "Easy",
+  "@difficultyEasy": {
+    "description": "Easy difficulty label"
+  },
+
+  "difficultyMedium": "Medium",
+  "@difficultyMedium": {
+    "description": "Medium difficulty label"
+  },
+
+  "difficultyHard": "Hard",
+  "@difficultyHard": {
+    "description": "Hard difficulty label"
+  },
+
+  "missionControlTitle": "Mission Control",
+  "@missionControlTitle": {
+    "description": "Title for mission control screen"
+  },
+
+  "noProjectsMessage": "No adventures created yet.\nGo back and Create Adventure!",
+  "@noProjectsMessage": {
+    "description": "Message shown when no projects exist"
+  },
+
+  "dialogDeleteTitle": "Delete Project?",
+  "@dialogDeleteTitle": {
+    "description": "Delete confirmation dialog title"
+  },
+
+  "dialogDeleteMessage": "This action cannot be undone.",
+  "@dialogDeleteMessage": {
+    "description": "Delete confirmation dialog message"
+  },
+
+  "dialogRenameTitle": "Rename Project",
+  "@dialogRenameTitle": {
+    "description": "Rename dialog title"
+  },
+
+  "dialogRenameHint": "Enter new name",
+  "@dialogRenameHint": {
+    "description": "Hint text for rename input field"
+  },
+
+  "btnCancel": "Cancel",
+  "@btnCancel": {
+    "description": "Cancel button text"
+  },
+
+  "btnDelete": "Delete",
+  "@btnDelete": {
+    "description": "Delete button text"
+  },
+
+  "btnSave": "Save",
+  "@btnSave": {
+    "description": "Save button text"
+  },
+
+  "btnRename": "Rename",
+  "@btnRename": {
+    "description": "Rename button text"
+  },
+
+  "btnLoad": "Load",
+  "@btnLoad": {
+    "description": "Load button text"
+  },
+
+  "lastModified": "Last modified",
+  "@lastModified": {
+    "description": "Last modified label"
+  },
+
+  "settingsTutorialDesc": "Replay the interactive tutorial",
+  "@settingsTutorialDesc": {
+    "description": "Description for tutorial setting"
+  },
+
+  "connectTitle": "Connect to Robot",
+  "@connectTitle": {
+    "description": "Connect screen title"
+  },
+
+  "connectSuccessMessage": "Successfully connected to {deviceName}",
+  "@connectSuccessMessage": {
+    "description": "Success message when connected to device",
+    "placeholders": {
+      "deviceName": {
+        "type": "String"
+      }
+    }
+  },
+
+  "connectFailedMessage": "Connection failed. Please try again.",
+  "@connectFailedMessage": {
+    "description": "Failed connection message"
+  },
+
+  "connectConnectedTo": "Connected to: {deviceName}",
+  "@connectConnectedTo": {
+    "description": "Currently connected device label",
+    "placeholders": {
+      "deviceName": {
+        "type": "String"
+      }
+    }
+  },
+
+  "connectBattery": "Battery: {level}%",
+  "@connectBattery": {
+    "description": "Battery level label",
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+
+  "connectDisconnect": "Disconnect",
+  "@connectDisconnect": {
+    "description": "Disconnect button text"
+  },
+
+  "connectRobotReady": "Robot is Ready!",
+  "@connectRobotReady": {
+    "description": "Robot ready message"
+  },
+
+  "connectGoBack": "Go back and start your adventure.",
+  "@connectGoBack": {
+    "description": "Instruction to go back after connecting"
+  },
+
+  "connectSearching": "Searching for Astroid robots...",
+  "@connectSearching": {
+    "description": "Searching message"
+  },
+
+  "connectNoRobots": "No Robots Found",
+  "@connectNoRobots": {
+    "description": "No robots found message"
+  },
+
+  "connectMakeSure": "Make sure your robot is turned on and press Scan.",
+  "@connectMakeSure": {
+    "description": "Instruction when no robots found"
+  },
+
+  "connectScanning": "Scanning...",
+  "@connectScanning": {
+    "description": "Scanning status text"
+  },
+
+  "connectScanButton": "Scan for Robots",
+  "@connectScanButton": {
+    "description": "Scan button text"
+  },
+
+  "connectSignalStrength": "{rssi} dBm",
+  "@connectSignalStrength": {
+    "description": "Signal strength display",
+    "placeholders": {
+      "rssi": {
+        "type": "int"
+      }
+    }
+  },
+
+  "connectingTitle": "Connecting...",
+  "@connectingTitle": {
+    "description": "Connecting screen title"
+  },
+
+  "connectingTo": "Establishing link with {deviceName}",
+  "@connectingTo": {
+    "description": "Connecting message",
+    "placeholders": {
+      "deviceName": {
+        "type": "String"
+      }
+    }
+  },
+
+  "connectingSuccess": "Successfully Connected!",
+  "@connectingSuccess": {
+    "description": "Success message"
+  },
+
+  "connectingSuccessTo": "Connected to {deviceName}",
+  "@connectingSuccessTo": {
+    "description": "Success message with device name",
+    "placeholders": {
+      "deviceName": {
+        "type": "String"
+      }
+    }
+  },
+
+  "connectingFailed": "Connection Failed",
+  "@connectingFailed": {
+    "description": "Failed message"
+  },
+
+  "connectingFailedReason": "Could not connect to the robot.",
+  "@connectingFailedReason": {
+    "description": "Failed reason message"
+  },
+
+  "connectingGoBack": "Go Back",
+  "@connectingGoBack": {
+    "description": "Go back button"
+  },
+
+  "connectingCancel": "Cancel",
+  "@connectingCancel": {
+    "description": "Cancel button"
+  },
+
+  "codeChatTitle": "Astroid CodeCraft",
+  "@codeChatTitle": {
+    "description": "Code chat screen title"
+  },
+
+  "codeChatBlocks": "3D Blocks",
+  "@codeChatBlocks": {
+    "description": "3D Blocks tab label"
+  },
+
+  "codeChatAI": "Chat AI",
+  "@codeChatAI": {
+    "description": "Chat AI tab label"
+  },
+
+  "codeChatPlaceholder": "// Your robot code goes here...",
+  "@codeChatPlaceholder": {
+    "description": "Code editor placeholder text"
+  },
+
+  "codeChatInputHint": "Chat with AstroidBot...",
+  "@codeChatInputHint": {
+    "description": "Chat input hint text"
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 import '../services/bluetooth_service.dart';
 import '../router/app_router.dart';
+import '../l10n/generated/app_localizations.dart';
 
 class ConnectScreen extends StatefulWidget {
   const ConnectScreen({super.key});
@@ -44,20 +45,22 @@ class _ConnectScreenState extends State<ConnectScreen> {
     );
 
     if (mounted && success == true) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('Successfully connected to ${device.platformName}'),
+            content: Text(l10n.connectSuccessMessage(device.platformName)),
             backgroundColor: Colors.green.shade700,
           ),
         );
     } else if (mounted && success == false) {
-       ScaffoldMessenger.of(context)
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
-            content: Text('Connection failed. Please try again.'),
+          SnackBar(
+            content: Text(l10n.connectFailedMessage),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -99,9 +102,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           const SizedBox(width: 12),
-          const Text(
-            'Connect to Robot',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.connectTitle,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -113,6 +116,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   }
 
   Widget _buildConnectionStatus() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       padding: const EdgeInsets.all(16),
@@ -130,7 +134,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Connected to: ${_btService.connectedDevice?.platformName ?? "Unknown"}',
+                  l10n.connectConnectedTo(_btService.connectedDevice?.platformName ?? "Unknown"),
                   style: const TextStyle(
                       color: Colors.white, fontWeight: FontWeight.bold),
                 ),
@@ -138,7 +142,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 4.0),
                     child: Text(
-                      'Battery: ${_btService.batteryLevel}%',
+                      l10n.connectBattery(_btService.batteryLevel),
                       style: const TextStyle(
                           color: Color(0xB3FFFFFF), fontSize: 12),
                     ),
@@ -148,7 +152,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
           ),
           TextButton(
             onPressed: _btService.disconnect,
-            child: const Text('Disconnect', style: TextStyle(color: Colors.white70)),
+            child: Text(l10n.connectDisconnect, style: const TextStyle(color: Colors.white70)),
           ),
         ],
       ),
@@ -156,14 +160,15 @@ class _ConnectScreenState extends State<ConnectScreen> {
   }
   
   Widget _buildMainContent() {
+    final l10n = AppLocalizations.of(context)!;
     if (_btService.isConnected) {
-      return const Column(
+      return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.smart_toy, size: 100, color: Colors.cyanAccent),
-          SizedBox(height: 20),
-          Text("Robot is Ready!", style: TextStyle(color: Colors.white, fontSize: 22)),
-          Text("Go back and start your adventure.", style: TextStyle(color: Colors.white70)),
+          const Icon(Icons.smart_toy, size: 100, color: Colors.cyanAccent),
+          const SizedBox(height: 20),
+          Text(l10n.connectRobotReady, style: const TextStyle(color: Colors.white, fontSize: 22)),
+          Text(l10n.connectGoBack, style: const TextStyle(color: Colors.white70)),
         ],
       );
     }
@@ -171,7 +176,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
     final bool isScanning = _btService.connectionState == BluetoothConnectionState.scanning;
     
     if (isScanning && _btService.scanResults.isEmpty) {
-      return const Center(child: Text("Searching for Astroid robots...", style: TextStyle(color: Colors.white70)));
+      return Center(child: Text(l10n.connectSearching, style: const TextStyle(color: Colors.white70)));
     }
 
     if (!isScanning && _btService.scanResults.isEmpty) {
@@ -230,7 +235,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('${result.rssi} dBm',
+                Text(AppLocalizations.of(context)!.connectSignalStrength(result.rssi),
                     style: const TextStyle(color: Colors.white70, fontSize: 12)),
                 const SizedBox(height: 4),
                 Icon(_getSignalIcon(result.rssi), color: _getSignalColor(result.rssi), size: 20),
@@ -244,18 +249,19 @@ class _ConnectScreenState extends State<ConnectScreen> {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.bluetooth_disabled, size: 80, color: Color(0x4DFFFFFF)),
-          SizedBox(height: 20),
-          Text('No Robots Found',
-              style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 18)),
-          SizedBox(height: 8),
-          Text('Make sure your robot is turned on and press Scan.',
+          const Icon(Icons.bluetooth_disabled, size: 80, color: Color(0x4DFFFFFF)),
+          const SizedBox(height: 20),
+          Text(l10n.connectNoRobots,
+              style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 18)),
+          const SizedBox(height: 8),
+          Text(l10n.connectMakeSure,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0x80FFFFFF), fontSize: 14)),
+              style: const TextStyle(color: Color(0x80FFFFFF), fontSize: 14)),
         ],
       ),
     );
@@ -263,6 +269,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
   Widget _buildScanButton() {
     final bool isScanning = _btService.connectionState == BluetoothConnectionState.scanning;
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -278,20 +285,20 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           child: isScanning
-              ? const Row(
+              ? Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-                    SizedBox(width: 12),
-                    Text('Scanning...', style: TextStyle(color: Colors.white)),
+                    const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                    const SizedBox(width: 12),
+                    Text(l10n.connectScanning, style: const TextStyle(color: Colors.white)),
                   ],
                 )
-              : const Row(
+              : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.search, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text('Scan for Robots', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    const Icon(Icons.search, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text(l10n.connectScanButton, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ],
                 ),
         ),

@@ -80,7 +80,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _currentLanguage = languageCode;
       });
-      // Update app locale dynamically
       if (context.mounted) {
         MyApp.setLocale(context, Locale(languageCode));
       }
@@ -93,7 +92,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _playSound(AudioPlayer player, String fileName) async {
     try {
       final file = await _audioCache.loadAsFile(fileName);
-      // Stop any current playback and play immediately
       await player.stop();
       await player.setVolume(_webViewVolume);
       await player.play(DeviceFileSource(file.path));
@@ -431,50 +429,7 @@ class _SettingsPanel extends StatelessWidget {
                     )
                   : ListView(
                       children: [
-                        _SettingsTile(
-                          icon: Icons.school_outlined,
-                          title: AppLocalizations.of(context)!.settingsTutorial,
-                          subtitle: 'Replay the interactive tutorial',
-                          trailing: const Icon(
-                            Icons.chevron_right,
-                            color: Color(0xFF64E7FF),
-                          ),
-                          onTap: onShowTutorial,
-                        ),
-                        SizedBox(height: panelPadding),
-
-                        // Music Volume
-                        _SliderTile(
-                          icon: Icons.music_note_outlined,
-                          title: AppLocalizations.of(
-                            context,
-                          )!.settingsMusicVolume,
-                          value: musicVolume,
-                          min: 0.0,
-                          max: 1.0,
-                          divisions: 20,
-                          label: '${(musicVolume * 100).round()}%',
-                          onChanged: onMusicVolumeChange,
-                        ),
-                        SizedBox(height: panelPadding),
-
-                        // WebView Volume
-                        _SliderTile(
-                          icon: Icons.videogame_asset_outlined,
-                          title: AppLocalizations.of(
-                            context,
-                          )!.settingsSoundVolume,
-                          value: webViewVolume,
-                          min: 0.0,
-                          max: 1.0,
-                          divisions: 20,
-                          label: '${(webViewVolume * 100).round()}%',
-                          onChanged: onWebViewVolumeChange,
-                          onChangeEnd: onWebViewVolumeChangeEnd,
-                        ),
-                        SizedBox(height: panelPadding),
-
-                        // Language selector
+                        // Language selector (First - affects entire UI)
                         _SettingsTile(
                           icon: Icons.language,
                           title: AppLocalizations.of(context)!.settingsLanguage,
@@ -542,10 +497,139 @@ class _SettingsPanel extends StatelessWidget {
                                   ),
                                 ],
                           ),
-                          onTap: null,
                         ),
                         SizedBox(height: panelPadding),
 
+                        // Show Tutorial (Second - key onboarding feature)
+                        _SettingsTile(
+                          icon: Icons.school_outlined,
+                          title: AppLocalizations.of(context)!.settingsTutorial,
+                          subtitle: AppLocalizations.of(context)!.settingsTutorialDesc,
+                          trailing: const Icon(
+                            Icons.chevron_right,
+                            color: Color(0xFF64E7FF),
+                          ),
+                          onTap: onShowTutorial,
+                        ),
+                        SizedBox(height: panelPadding),
+
+                        // Music Volume (Middle - feature-specific)
+                        _SliderTile(
+                          icon: Icons.music_note_outlined,
+                          title: AppLocalizations.of(
+                            context,
+                          )!.settingsMusicVolume,
+                          value: musicVolume,
+                          min: 0.0,
+                          max: 1.0,
+                          divisions: 20,
+                          label: '${(musicVolume * 100).round()}%',
+                          onChanged: onMusicVolumeChange,
+                        ),
+                        SizedBox(height: panelPadding),
+
+                        // WebView Volume (Middle - feature-specific)
+                        _SliderTile(
+                          icon: Icons.videogame_asset_outlined,
+                          title: AppLocalizations.of(
+                            context,
+                          )!.settingsSoundVolume,
+                          value: webViewVolume,
+                          min: 0.0,
+                          max: 1.0,
+                          divisions: 20,
+                          label: '${(webViewVolume * 100).round()}%',
+                          onChanged: onWebViewVolumeChange,
+                          onChangeEnd: onWebViewVolumeChangeEnd,
+                        ),
+                        SizedBox(height: panelPadding),
+
+                        // TODO: Uncomment when haptic features are implemented
+                        // // Haptic Feedback Toggle
+                        // _SettingsTile(
+                        //   icon: Icons.vibration,
+                        //   title: 'Haptic Feedback',
+                        //   subtitle: 'Enable vibration feedback',
+                        //   trailing: Switch(
+                        //     value: false,
+                        //     onChanged: (value) {},
+                        //     activeColor: const Color(0xFF64E7FF),
+                        //   ),
+                        // ),
+                        // SizedBox(height: panelPadding),
+
+                        // About Button (Always last)
+                        _SettingsTile(
+                          icon: Icons.language,
+                          title: AppLocalizations.of(context)!.settingsLanguage,
+                          subtitle: currentLanguage == 'en'
+                              ? AppLocalizations.of(context)!.languageEnglish
+                              : AppLocalizations.of(
+                                  context,
+                                )!.languageIndonesian,
+                          trailing: PopupMenuButton<String>(
+                            icon: const Icon(
+                              Icons.arrow_drop_down,
+                              color: Color(0xFF64E7FF),
+                            ),
+                            color: const Color(0xFF0F1D3C),
+                            onSelected: onLanguageChange,
+                            itemBuilder: (BuildContext context) =>
+                                <PopupMenuEntry<String>>[
+                                  PopupMenuItem<String>(
+                                    value: 'en',
+                                    child: Row(
+                                      children: [
+                                        if (currentLanguage == 'en')
+                                          const Icon(
+                                            Icons.check,
+                                            color: Color(0xFF64E7FF),
+                                            size: 20,
+                                          )
+                                        else
+                                          const SizedBox(width: 20),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.languageEnglish,
+                                          style: GoogleFonts.inter(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem<String>(
+                                    value: 'id',
+                                    child: Row(
+                                      children: [
+                                        if (currentLanguage == 'id')
+                                          const Icon(
+                                            Icons.check,
+                                            color: Color(0xFF64E7FF),
+                                            size: 20,
+                                          )
+                                        else
+                                          const SizedBox(width: 20),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.languageIndonesian,
+                                          style: GoogleFonts.inter(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                          ),
+                        ),
+                        SizedBox(height: panelPadding),
+
+                        // About Button (Always last)
                         _SettingsTile(
                           icon: Icons.info_outline,
                           title: AppLocalizations.of(context)!.settingsAbout,

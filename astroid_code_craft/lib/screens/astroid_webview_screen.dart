@@ -61,8 +61,11 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
 
     final action = widget.args['action'] ?? 'new_project';
     final projectId = widget.args['id'] ?? '';
+
+    final locale = Localizations.localeOf(context).languageCode;
+
     final initialUrl =
-        "http://localhost:8080/web_build/index.html?action=$action&id=$projectId";
+        "http://localhost:8080/web_build/index.html?action=$action&id=$projectId&locale=$locale";
 
     return PopScope(
       canPop: false,

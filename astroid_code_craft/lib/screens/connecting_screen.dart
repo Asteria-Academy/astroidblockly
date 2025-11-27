@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as fbp;
 import '../services/bluetooth_service.dart';
+import '../l10n/generated/app_localizations.dart';
 
 enum _ConnectingStatus { connecting, success, failed }
 
@@ -64,14 +65,15 @@ class _ConnectingScreenState extends State<ConnectingScreen> {
   }
 
   Widget _buildContent() {
+    final l10n = AppLocalizations.of(context)!;
     switch (_status) {
       case _ConnectingStatus.success:
         return _StatusIndicator(
           icon: Icons.check_circle_rounded,
           iconColor: const Color(0xFF4CAF50),
           glowColor: const Color(0xFF81C784),
-          message: "Successfully Connected!",
-          subtitle: "Connected to ${widget.device.platformName}",
+          message: l10n.connectingSuccess,
+          subtitle: l10n.connectingSuccessTo(widget.device.platformName),
         );
 
       case _ConnectingStatus.failed:
@@ -79,9 +81,9 @@ class _ConnectingScreenState extends State<ConnectingScreen> {
           icon: Icons.error_rounded,
           iconColor: const Color(0xFFF44336),
           glowColor: const Color(0xFFEF5350),
-          message: "Connection Failed",
-          subtitle: _errorReason ?? "Could not connect to the robot.",
-          buttonText: "Go Back",
+          message: l10n.connectingFailed,
+          subtitle: _errorReason ?? l10n.connectingFailedReason,
+          buttonText: l10n.connectingGoBack,
           onButtonPressed: () => Navigator.of(context).pop(false),
         );
 
@@ -90,9 +92,9 @@ class _ConnectingScreenState extends State<ConnectingScreen> {
           icon: null,
           iconColor: const Color(0xFF00BCD4),
           glowColor: const Color(0xFF4DD0E1),
-          message: "Connecting...",
-          subtitle: "Establishing link with ${widget.device.platformName}",
-          buttonText: "Cancel",
+          message: l10n.connectingTitle,
+          subtitle: l10n.connectingTo(widget.device.platformName),
+          buttonText: l10n.connectingCancel,
           onButtonPressed: () {
             _btService.disconnect();
             Navigator.of(context).pop(false);

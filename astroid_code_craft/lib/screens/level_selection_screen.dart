@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../router/app_router.dart';
+import '../l10n/generated/app_localizations.dart';
 
 class LevelSelectionScreen extends StatefulWidget {
   const LevelSelectionScreen({super.key});
@@ -12,53 +13,56 @@ class LevelSelectionScreen extends StatefulWidget {
 }
 
 class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
-  final List<Map<String, dynamic>> _levels = [
-    {
-      'id': 1,
-      'name': 'First Steps',
-      'difficulty': 'easy',
-      'description': 'Learn to move forward',
-      'icon': Icons.rocket_launch,
-    },
-    {
-      'id': 2,
-      'name': 'Making a Turn',
-      'difficulty': 'easy',
-      'description': 'Navigate a corner',
-      'icon': Icons.turn_right,
-    },
-    {
-      'id': 3,
-      'name': 'The Square Dance',
-      'difficulty': 'medium',
-      'description': 'Use loops to trace a square',
-      'icon': Icons.sync,
-    },
-    {
-      'id': 4,
-      'name': 'Shuttle Run',
-      'difficulty': 'medium',
-      'description': 'Go and return to start',
-      'icon': Icons.compare_arrows,
-    },
-    {
-      'id': 5,
-      'name': "Don't Hit The Wall!",
-      'difficulty': 'hard',
-      'description': 'Use sensors to avoid obstacles',
-      'icon': Icons.sensors,
-    },
-    {
-      'id': 6,
-      'name': 'The Maze',
-      'difficulty': 'hard',
-      'description': 'Navigate a complex maze',
-      'icon': Icons.grid_on,
-    },
-  ];
-
   Map<int, List<bool>> _progress = {};
   bool _isLoading = true;
+
+  List<Map<String, dynamic>> _getLevels(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      {
+        'id': 1,
+        'name': l10n.levelFirstSteps,
+        'difficulty': 'easy',
+        'description': l10n.levelFirstStepsDesc,
+        'icon': Icons.rocket_launch,
+      },
+      {
+        'id': 2,
+        'name': l10n.levelMakingTurn,
+        'difficulty': 'easy',
+        'description': l10n.levelMakingTurnDesc,
+        'icon': Icons.turn_right,
+      },
+      {
+        'id': 3,
+        'name': l10n.levelSquareDance,
+        'difficulty': 'medium',
+        'description': l10n.levelSquareDanceDesc,
+        'icon': Icons.sync,
+      },
+      {
+        'id': 4,
+        'name': l10n.levelShuttleRun,
+        'difficulty': 'medium',
+        'description': l10n.levelShuttleRunDesc,
+        'icon': Icons.compare_arrows,
+      },
+      {
+        'id': 5,
+        'name': l10n.levelDontHitWall,
+        'difficulty': 'hard',
+        'description': l10n.levelDontHitWallDesc,
+        'icon': Icons.sensors,
+      },
+      {
+        'id': 6,
+        'name': l10n.levelTheMaze,
+        'difficulty': 'hard',
+        'description': l10n.levelTheMazeDesc,
+        'icon': Icons.grid_on,
+      },
+    ];
+  }
 
   @override
   void initState() {
@@ -69,8 +73,9 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
   Future<void> _loadProgress() async {
     setState(() {
       _progress = {};
-      for (var level in _levels) {
-        _progress[level['id']] = [false, false, false, false];
+      // Initialize progress for 6 levels
+      for (int i = 1; i <= 6; i++) {
+        _progress[i] = [false, false, false, false];
       }
       _isLoading = false;
     });
@@ -99,6 +104,9 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final levels = _getLevels(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B1433),
       body: SafeArea(
@@ -114,7 +122,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Challenge Mode',
+                    l10n.challengeModeTitle,
                     style: GoogleFonts.titanOne(
                       fontSize: 28,
                       color: const Color(0xFF41D8FF),
@@ -142,9 +150,9 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
                           ),
-                      itemCount: _levels.length,
+                      itemCount: levels.length,
                       itemBuilder: (context, index) {
-                        final level = _levels[index];
+                        final level = levels[index];
                         final stars =
                             _progress[level['id']] ??
                             [false, false, false, false];
@@ -201,12 +209,12 @@ class _LevelCard extends StatelessWidget {
             ],
           ),
           border: Border.all(
-            color: Color.fromARGB(128, difficultyColor.red, difficultyColor.green, difficultyColor.blue), // ignore: deprecated_member_use
+            color: Color.fromARGB( 128, difficultyColor.red, difficultyColor.green, difficultyColor.blue ), // ignore: deprecated_member_use
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Color.fromARGB(51, difficultyColor.red, difficultyColor.green, difficultyColor.blue), // ignore: deprecated_member_use
+              color: Color.fromARGB( 51, difficultyColor.red, difficultyColor.green, difficultyColor.blue ), // ignore: deprecated_member_use
               blurRadius: 12,
               spreadRadius: 1,
             ),
@@ -224,7 +232,7 @@ class _LevelCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Color.fromARGB(51, difficultyColor.red, difficultyColor.green, difficultyColor.blue), // ignore: deprecated_member_use
+                      color: Color.fromARGB( 51, difficultyColor.red, difficultyColor.green, difficultyColor.blue ), // ignore: deprecated_member_use
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(

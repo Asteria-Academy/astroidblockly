@@ -337,6 +337,342 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Indonesian'**
   String get languageIndonesian;
+
+  /// Title for challenge mode screen
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge Mode'**
+  String get challengeModeTitle;
+
+  /// Level 1 name
+  ///
+  /// In en, this message translates to:
+  /// **'First Steps'**
+  String get levelFirstSteps;
+
+  /// Level 1 description
+  ///
+  /// In en, this message translates to:
+  /// **'Learn to move forward'**
+  String get levelFirstStepsDesc;
+
+  /// Level 2 name
+  ///
+  /// In en, this message translates to:
+  /// **'Making a Turn'**
+  String get levelMakingTurn;
+
+  /// Level 2 description
+  ///
+  /// In en, this message translates to:
+  /// **'Navigate a corner'**
+  String get levelMakingTurnDesc;
+
+  /// Level 3 name
+  ///
+  /// In en, this message translates to:
+  /// **'The Square Dance'**
+  String get levelSquareDance;
+
+  /// Level 3 description
+  ///
+  /// In en, this message translates to:
+  /// **'Use loops to trace a square'**
+  String get levelSquareDanceDesc;
+
+  /// Level 4 name
+  ///
+  /// In en, this message translates to:
+  /// **'Shuttle Run'**
+  String get levelShuttleRun;
+
+  /// Level 4 description
+  ///
+  /// In en, this message translates to:
+  /// **'Go and return to start'**
+  String get levelShuttleRunDesc;
+
+  /// Level 5 name
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t Hit The Wall!'**
+  String get levelDontHitWall;
+
+  /// Level 5 description
+  ///
+  /// In en, this message translates to:
+  /// **'Use sensors to avoid obstacles'**
+  String get levelDontHitWallDesc;
+
+  /// Level 6 name
+  ///
+  /// In en, this message translates to:
+  /// **'The Maze'**
+  String get levelTheMaze;
+
+  /// Level 6 description
+  ///
+  /// In en, this message translates to:
+  /// **'Navigate a complex maze'**
+  String get levelTheMazeDesc;
+
+  /// Easy difficulty label
+  ///
+  /// In en, this message translates to:
+  /// **'Easy'**
+  String get difficultyEasy;
+
+  /// Medium difficulty label
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get difficultyMedium;
+
+  /// Hard difficulty label
+  ///
+  /// In en, this message translates to:
+  /// **'Hard'**
+  String get difficultyHard;
+
+  /// Title for mission control screen
+  ///
+  /// In en, this message translates to:
+  /// **'Mission Control'**
+  String get missionControlTitle;
+
+  /// Message shown when no projects exist
+  ///
+  /// In en, this message translates to:
+  /// **'No adventures created yet.\nGo back and Create Adventure!'**
+  String get noProjectsMessage;
+
+  /// Delete confirmation dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Project?'**
+  String get dialogDeleteTitle;
+
+  /// Delete confirmation dialog message
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get dialogDeleteMessage;
+
+  /// Rename dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Project'**
+  String get dialogRenameTitle;
+
+  /// Hint text for rename input field
+  ///
+  /// In en, this message translates to:
+  /// **'Enter new name'**
+  String get dialogRenameHint;
+
+  /// Cancel button text
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get btnCancel;
+
+  /// Delete button text
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get btnDelete;
+
+  /// Save button text
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get btnSave;
+
+  /// Rename button text
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get btnRename;
+
+  /// Load button text
+  ///
+  /// In en, this message translates to:
+  /// **'Load'**
+  String get btnLoad;
+
+  /// Last modified label
+  ///
+  /// In en, this message translates to:
+  /// **'Last modified'**
+  String get lastModified;
+
+  /// Description for tutorial setting
+  ///
+  /// In en, this message translates to:
+  /// **'Replay the interactive tutorial'**
+  String get settingsTutorialDesc;
+
+  /// Connect screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to Robot'**
+  String get connectTitle;
+
+  /// Success message when connected to device
+  ///
+  /// In en, this message translates to:
+  /// **'Successfully connected to {deviceName}'**
+  String connectSuccessMessage(String deviceName);
+
+  /// Failed connection message
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed. Please try again.'**
+  String get connectFailedMessage;
+
+  /// Currently connected device label
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to: {deviceName}'**
+  String connectConnectedTo(String deviceName);
+
+  /// Battery level label
+  ///
+  /// In en, this message translates to:
+  /// **'Battery: {level}%'**
+  String connectBattery(int level);
+
+  /// Disconnect button text
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get connectDisconnect;
+
+  /// Robot ready message
+  ///
+  /// In en, this message translates to:
+  /// **'Robot is Ready!'**
+  String get connectRobotReady;
+
+  /// Instruction to go back after connecting
+  ///
+  /// In en, this message translates to:
+  /// **'Go back and start your adventure.'**
+  String get connectGoBack;
+
+  /// Searching message
+  ///
+  /// In en, this message translates to:
+  /// **'Searching for Astroid robots...'**
+  String get connectSearching;
+
+  /// No robots found message
+  ///
+  /// In en, this message translates to:
+  /// **'No Robots Found'**
+  String get connectNoRobots;
+
+  /// Instruction when no robots found
+  ///
+  /// In en, this message translates to:
+  /// **'Make sure your robot is turned on and press Scan.'**
+  String get connectMakeSure;
+
+  /// Scanning status text
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning...'**
+  String get connectScanning;
+
+  /// Scan button text
+  ///
+  /// In en, this message translates to:
+  /// **'Scan for Robots'**
+  String get connectScanButton;
+
+  /// Signal strength display
+  ///
+  /// In en, this message translates to:
+  /// **'{rssi} dBm'**
+  String connectSignalStrength(int rssi);
+
+  /// Connecting screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting...'**
+  String get connectingTitle;
+
+  /// Connecting message
+  ///
+  /// In en, this message translates to:
+  /// **'Establishing link with {deviceName}'**
+  String connectingTo(String deviceName);
+
+  /// Success message
+  ///
+  /// In en, this message translates to:
+  /// **'Successfully Connected!'**
+  String get connectingSuccess;
+
+  /// Success message with device name
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {deviceName}'**
+  String connectingSuccessTo(String deviceName);
+
+  /// Failed message
+  ///
+  /// In en, this message translates to:
+  /// **'Connection Failed'**
+  String get connectingFailed;
+
+  /// Failed reason message
+  ///
+  /// In en, this message translates to:
+  /// **'Could not connect to the robot.'**
+  String get connectingFailedReason;
+
+  /// Go back button
+  ///
+  /// In en, this message translates to:
+  /// **'Go Back'**
+  String get connectingGoBack;
+
+  /// Cancel button
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get connectingCancel;
+
+  /// Code chat screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Astroid CodeCraft'**
+  String get codeChatTitle;
+
+  /// 3D Blocks tab label
+  ///
+  /// In en, this message translates to:
+  /// **'3D Blocks'**
+  String get codeChatBlocks;
+
+  /// Chat AI tab label
+  ///
+  /// In en, this message translates to:
+  /// **'Chat AI'**
+  String get codeChatAI;
+
+  /// Code editor placeholder text
+  ///
+  /// In en, this message translates to:
+  /// **'// Your robot code goes here...'**
+  String get codeChatPlaceholder;
+
+  /// Chat input hint text
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with AstroidBot...'**
+  String get codeChatInputHint;
 }
 
 class _AppLocalizationsDelegate
