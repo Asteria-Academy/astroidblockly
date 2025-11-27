@@ -19,7 +19,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   InAppWebViewController? _hiddenWebViewController;
 
   List<Project> _projects = [];
@@ -42,6 +43,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey _continueJourneyKey = GlobalKey();
   final GlobalKey _missionControlKey = GlobalKey();
 
+  late final AnimationController _astroController;
+  late final Animation<Alignment> _astroAlignment;
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +66,37 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     unawaited(_bubblePointOnePlayer.setAudioContext(audioContext));
     unawaited(_bubblePointTwoPlayer.setAudioContext(audioContext));
+
+    _astroController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 26),
+    )..repeat();
+
+    const leftPos = Alignment(-1.2, 1.1);
+    const rightPos = Alignment(1.3, -0.45);
+
+    _astroAlignment = TweenSequence<Alignment>([
+      // Stay on left ~10s
+      TweenSequenceItem(tween: ConstantTween<Alignment>(leftPos), weight: 10),
+      // Travel to right ~3s
+      TweenSequenceItem(
+        tween: AlignmentTween(
+          begin: leftPos,
+          end: rightPos,
+        ).chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 3,
+      ),
+      // Stay on right ~10s
+      TweenSequenceItem(tween: ConstantTween<Alignment>(rightPos), weight: 10),
+      // Travel back to left ~3s
+      TweenSequenceItem(
+        tween: AlignmentTween(
+          begin: rightPos,
+          end: leftPos,
+        ).chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 3,
+      ),
+    ]).animate(_astroController);
 
     // Register ShowcaseView with configuration
     ShowcaseView.register(
@@ -176,6 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     unawaited(_bubblePointOnePlayer.dispose());
     unawaited(_bubblePointTwoPlayer.dispose());
+    _astroController.dispose();
     ShowcaseView.get().unregister();
     super.dispose();
   }
@@ -204,6 +240,41 @@ class _HomeScreenState extends State<HomeScreen> {
                 'assets/brand/mascotnobg.png',
                 fit: BoxFit.contain,
               ),
+            ),
+          ),
+
+          // Floating astronaut behind main content
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _astroController,
+              builder: (context, _) {
+                final bob = math.sin(_astroController.value * math.pi * 2) * 8;
+                final sway = math.cos(_astroController.value * math.pi * 2) * 6;
+                final flip = _astroAlignment.value.x > 0;
+                return Align(
+                  alignment: _astroAlignment.value,
+                  child: IgnorePointer(
+                    child: Transform.translate(
+                      offset: Offset(sway, bob),
+                      child: Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.diagonal3Values(
+                          flip ? -1.0 : 1.0,
+                          1.0,
+                          1.0,
+                        ),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          child: Image.asset(
+                            'assets/brand/mascotnobg.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
 
@@ -374,17 +445,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
               ],
-            ),
-          ),
-          Positioned(
-            left: 0,
-            bottom: -20 * 4,
-            child: SizedBox(
-              height: MediaQuery.of(context).size.height * 0.5,
-              child: Image.asset(
-                'assets/brand/mascotnobg.png',
-                fit: BoxFit.contain,
-              ),
             ),
           ),
         ],
