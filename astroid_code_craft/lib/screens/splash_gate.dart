@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../router/app_router.dart';
@@ -73,22 +74,29 @@ class _SplashGateState extends State<SplashGate> with TickerProviderStateMixin {
     try {
       _log("Boot process started.");
 
-      if (!localhostServer.isRunning()) {
-        _log("Starting localhost server...");
-        await localhostServer.start();
-        _log("Server task finished.");
+      if (kIsWeb) {
+        _log("Running on web - skipping localhost server.");
+        isServerRunning = true;
       } else {
-        _log("Server already running.");
-      }
+        if (!localhostServer.isRunning()) {
+          _log("Starting localhost server...");
+          await localhostServer.start();
+          _log("Server task finished.");
+        } else {
+          _log("Server already running.");
+        }
 
-      isServerRunning = localhostServer.isRunning();
+        isServerRunning = localhostServer.isRunning();
+      }
 
       _log("Precaching assets...");
       await _precacheAssets();
       _log("Asset precache finished.");
 
       _log("Starting animation...");
-      _progressCtl.forward();
+      if (!_progressCtl.isAnimating) {
+        _progressCtl.forward();
+      }
     } catch (e) {
       _log("FATAL ERROR during boot: $e");
       if (mounted) {

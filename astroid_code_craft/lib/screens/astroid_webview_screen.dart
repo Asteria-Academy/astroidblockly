@@ -9,6 +9,7 @@ import '../services/bluetooth_service.dart';
 import '../services/preferences_service.dart';
 import '../router/app_router.dart';
 import './splash_gate.dart';
+import '../utils/web_app_url.dart';
 
 class AstroidWebViewScreen extends StatefulWidget {
   const AstroidWebViewScreen({super.key, required this.args});
@@ -53,7 +54,7 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!isServerRunning) {
+    if (!isServerRunning && !kIsWeb) {
       return const Scaffold(
         body: Center(child: Text("Error: Local web server is not running.")),
       );
@@ -61,11 +62,13 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
 
     final action = widget.args['action'] ?? 'new_project';
     final projectId = widget.args['id'] ?? '';
-
     final locale = Localizations.localeOf(context).languageCode;
 
-    final initialUrl =
-        "http://localhost:8080/web_build/index.html?action=$action&id=$projectId&locale=$locale";
+    final initialUrl = buildWebAppUri(
+      action: action,
+      projectId: projectId,
+      locale: locale,
+    ).toString();
 
     return PopScope(
       canPop: false,

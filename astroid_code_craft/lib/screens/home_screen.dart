@@ -10,6 +10,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/project.dart';
 import '../router/app_router.dart';
 import '../services/preferences_service.dart';
+import '../utils/web_app_url.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -217,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   height: 1,
                   child: InAppWebView(
                     initialUrlRequest: URLRequest(
-                      url: WebUri("http://localhost:8080/web_build/index.html"),
+                      url: WebUri(buildWebAppUri().toString()),
                     ),
                     onWebViewCreated: (controller) {
                       _hiddenWebViewController = controller;
