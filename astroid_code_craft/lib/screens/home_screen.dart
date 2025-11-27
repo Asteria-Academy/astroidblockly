@@ -233,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     final h = c.maxHeight;
 
                     // Skala responsif (selaras dengan splash)
-                    final topNavW = math.min(w * 0.6, 640.0);
+                    final topNavW = math.min(w * 0.7, 650.0);
                     final topNavH = math.min(h * 0.15, 72.0);
 
                     final panelW = math.min(w * 0.78, 960.0);
