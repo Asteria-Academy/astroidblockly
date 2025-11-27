@@ -236,7 +236,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     final isMedium = w < 1000;
 
                     // Skala responsif (selaras dengan splash)
-                    final topNavW = math.min(w * (isSmall ? 0.9 : 0.72), 720.0);
+                    final topNavW = math.min(w * (isSmall ? 0.9 : 0.72), 800.0);
                     final topNavH = math.min(
                       h * (isSmall ? 0.16 : 0.14),
                       isSmall ? 82.0 : 88.0,
