@@ -30,50 +30,43 @@ class AppLocalizationsId extends AppLocalizations {
   String get showcaseHomeTitle => 'Beranda';
 
   @override
-  String get showcaseHomeDesc =>
-      'Pusat komando Anda. Kembali ke sini kapan saja untuk mengakses semua fitur.';
+  String get showcaseHomeDesc => 'Pusat komando Anda. Kembali ke sini kapan saja untuk mengakses semua fitur.';
 
   @override
   String get showcaseCodeTitle => 'Asisten Kode AI';
 
   @override
-  String get showcaseCodeDesc =>
-      'Ngobrol dengan AI untuk mendapat bantuan coding dan belajar konsep pemrograman.';
+  String get showcaseCodeDesc => 'Ngobrol dengan AI untuk mendapat bantuan coding dan belajar konsep pemrograman.';
 
   @override
   String get showcaseChallengesTitle => 'Tantangan';
 
   @override
-  String get showcaseChallengesDesc =>
-      'Uji kemampuanmu dengan tantangan coding dan puzzle yang seru.';
+  String get showcaseChallengesDesc => 'Uji kemampuanmu dengan tantangan coding dan puzzle yang seru.';
 
   @override
   String get showcaseConnectTitle => 'Hubungkan Robot';
 
   @override
-  String get showcaseConnectDesc =>
-      'Hubungkan ke robot fisikmu via Bluetooth untuk menghidupkan kode-mu.';
+  String get showcaseConnectDesc => 'Hubungkan ke robot fisikmu via Bluetooth untuk menghidupkan kode-mu.';
 
   @override
   String get showcaseCreateTitle => 'Buat Petualangan';
 
   @override
-  String get showcaseCreateDesc =>
-      'Mulai proyek coding baru. Bangun dan program robotmu dari awal!';
+  String get showcaseCreateDesc => 'Mulai proyek coding baru. Bangun dan program robotmu dari awal!';
 
   @override
   String get showcaseContinueTitle => 'Lanjutkan';
 
   @override
-  String get showcaseContinueDesc =>
-      'Lanjutkan proyek terakhirmu dan terus bangun ciptaanmu.';
+  String get showcaseContinueDesc => 'Lanjutkan proyek terakhirmu dan terus bangun ciptaanmu.';
 
   @override
   String get showcaseMissionTitle => 'Kontrol Misi';
 
   @override
-  String get showcaseMissionDesc =>
-      'Lihat dan kelola semua proyekmu yang tersimpan. Muat, hapus, atau ganti namanya di sini.';
+  String get showcaseMissionDesc => 'Lihat dan kelola semua proyekmu yang tersimpan. Muat, hapus, atau ganti namanya di sini.';
 
   @override
   String get btnSkip => 'Lewati';
@@ -124,8 +117,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get aboutLegalese => '© 2025 Asteria Academy';
 
   @override
-  String get aboutDescription =>
-      'Lingkungan pemrograman visual untuk belajar robotika dan coding.';
+  String get aboutDescription => 'Lingkungan pemrograman visual untuk belajar robotika dan coding.';
 
   @override
   String get settingsLanguage => 'Bahasa';
@@ -188,8 +180,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get missionControlTitle => 'Kontrol Misi';
 
   @override
-  String get noProjectsMessage =>
-      'Belum ada petualangan yang dibuat.\nKembali dan Buat Petualangan!';
+  String get noProjectsMessage => 'Belum ada petualangan yang dibuat.\nKembali dan Buat Petualangan!';
 
   @override
   String get dialogDeleteTitle => 'Hapus Proyek?';
@@ -261,8 +252,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get connectNoRobots => 'Tidak Ada Robot Ditemukan';
 
   @override
-  String get connectMakeSure =>
-      'Pastikan robotmu sudah menyala dan tekan Pindai.';
+  String get connectMakeSure => 'Pastikan robotmu sudah menyala dan tekan Pindai.';
 
   @override
   String get connectScanning => 'Memindai...';

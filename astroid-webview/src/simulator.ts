@@ -213,11 +213,12 @@ export class Simulator {
     if (ledId === 'all') {
         this.leds.forEach(applyColor);
     } else {
-        // Convert 1-indexed to 0-indexed for array access
-        const ledIndex = ledId - 1;
-        if (this.leds[ledIndex]) {
-            applyColor(this.leds[ledIndex]);
-        }
+      const LED_NUMBERING_OFFSET = 9;
+      const visualIndex = (ledId - 1 + LED_NUMBERING_OFFSET) % 12; // Adjust for 0-based index and offset
+
+      if (this.leds[visualIndex]) {
+          applyColor(this.leds[visualIndex]);
+      }
     }
   }
 
