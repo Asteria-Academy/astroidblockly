@@ -30,43 +30,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get showcaseHomeTitle => 'Home';
 
   @override
-  String get showcaseHomeDesc => 'Your command center. Return here anytime to access all features.';
+  String get showcaseHomeDesc =>
+      'Your command center. Return here anytime to access all features.';
 
   @override
   String get showcaseCodeTitle => 'AI Code Assistant';
 
   @override
-  String get showcaseCodeDesc => 'Chat with AI to get coding help and learn programming concepts.';
+  String get showcaseCodeDesc =>
+      'Chat with AI to get coding help and learn programming concepts.';
 
   @override
   String get showcaseChallengesTitle => 'Challenges';
 
   @override
-  String get showcaseChallengesDesc => 'Test your skills with exciting coding challenges and puzzles.';
+  String get showcaseChallengesDesc =>
+      'Test your skills with exciting coding challenges and puzzles.';
 
   @override
   String get showcaseConnectTitle => 'Connect Robot';
 
   @override
-  String get showcaseConnectDesc => 'Connect to your physical robot via Bluetooth to bring your code to life.';
+  String get showcaseConnectDesc =>
+      'Connect to your physical robot via Bluetooth to bring your code to life.';
 
   @override
   String get showcaseCreateTitle => 'Create Adventure';
 
   @override
-  String get showcaseCreateDesc => 'Start a brand new coding project. Build and program your robot from scratch!';
+  String get showcaseCreateDesc =>
+      'Start a brand new coding project. Build and program your robot from scratch!';
 
   @override
   String get showcaseContinueTitle => 'Continue Journey';
 
   @override
-  String get showcaseContinueDesc => 'Resume your last project and keep building your creation.';
+  String get showcaseContinueDesc =>
+      'Resume your last project and keep building your creation.';
 
   @override
   String get showcaseMissionTitle => 'Mission Control';
 
   @override
-  String get showcaseMissionDesc => 'View and manage all your saved projects. Load, delete, or rename them here.';
+  String get showcaseMissionDesc =>
+      'View and manage all your saved projects. Load, delete, or rename them here.';
 
   @override
   String get btnSkip => 'Skip';
@@ -117,7 +124,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutLegalese => '© 2025 Asteria Academy';
 
   @override
-  String get aboutDescription => 'A visual programming environment for learning robotics and coding.';
+  String get aboutDescription =>
+      'A visual programming environment for learning robotics and coding.';
 
   @override
   String get settingsLanguage => 'Language';
@@ -180,7 +188,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get missionControlTitle => 'Mission Control';
 
   @override
-  String get noProjectsMessage => 'No adventures created yet.\nGo back and Create Adventure!';
+  String get noProjectsMessage =>
+      'No adventures created yet.\nGo back and Create Adventure!';
 
   @override
   String get dialogDeleteTitle => 'Delete Project?';
@@ -252,7 +261,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connectNoRobots => 'No Robots Found';
 
   @override
-  String get connectMakeSure => 'Make sure your robot is turned on and press Scan.';
+  String get connectMakeSure =>
+      'Make sure your robot is turned on and press Scan.';
 
   @override
   String get connectScanning => 'Scanning...';
