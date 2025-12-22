@@ -34,11 +34,25 @@ Example: {"tool": "get_robot_status", "args": {}, "message": "Let me check your 
 Tool: execute_robot_command
 Description: Execute a movement command on the robot
 Args: {
+  // Option A: single high-level command
   "command": "move_forward" | "move_backward" | "turn_left" | "turn_right" | "spin_left" | "spin_right" | "stop",
   "duration_ms": number (milliseconds, default 1000),
-  "speed": number (0-255, default 100)
+  "speed": number (0-255, default 100),
+
+  // Option B: explicit sequencer commands (preferred for multi-step)
+  "commands": [
+    {
+      "command": "DRIVE_DIRECT" | "WAIT",
+      "params": {
+        "duration_ms": number,
+        "left_speed": number (-255..255),
+        "right_speed": number (-255..255)
+      }
+    }
+  ]
 }
 Example: {"tool": "execute_robot_command", "args": {"command": "move_forward", "duration_ms": 2000, "speed": 150}, "message": "Making your robot move forward for 2 seconds..."}
+Example (multi-step): {"tool": "execute_robot_command", "args": {"commands": [{"command": "DRIVE_DIRECT", "params": {"duration_ms": 2000, "left_speed": 120, "right_speed": 120}}, {"command": "DRIVE_DIRECT", "params": {"duration_ms": 800, "left_speed": 0, "right_speed": 120}}]}, "message": "Moving forward then pivoting right"}
 
 Command Details:
 - move_forward: Robot moves straight forward

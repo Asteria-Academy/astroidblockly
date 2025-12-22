@@ -25,6 +25,7 @@ class ToolCall {
   final String result;
   final bool success;
   final String? errorMessage;
+  final String? message; // message the AI wanted to show the user for this call
 
   ToolCall({
     required this.toolName,
@@ -32,6 +33,7 @@ class ToolCall {
     required this.result,
     this.success = true,
     this.errorMessage,
+    this.message,
   });
 
   factory ToolCall.fromJson(Map<String, dynamic> json) {
@@ -40,6 +42,7 @@ class ToolCall {
       arguments: json['args'] as Map<String, dynamic>? ?? {},
       result: '',
       success: false,
+      message: json['message'] as String?,
     );
   }
 
@@ -47,6 +50,7 @@ class ToolCall {
     String? result,
     bool? success,
     String? errorMessage,
+    String? message,
   }) {
     return ToolCall(
       toolName: toolName,
@@ -54,6 +58,7 @@ class ToolCall {
       result: result ?? this.result,
       success: success ?? this.success,
       errorMessage: errorMessage ?? this.errorMessage,
+      message: message ?? this.message,
     );
   }
 }

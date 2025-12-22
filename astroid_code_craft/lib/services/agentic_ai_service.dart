@@ -12,6 +12,8 @@ import 'bluetooth_service.dart';
 class AgenticAIService {
   final KolosalApiService _apiService;
   final BluetoothService _bluetoothService;
+  final List<String> _pendingCommandSequences = [];
+  bool _isProcessingQueue = false;
 
   AgenticAIService({
     required KolosalApiService apiService,
@@ -117,9 +119,9 @@ class AgenticAIService {
         // It's a tool call - execute it
         final executedToolCall = await _executeTool(toolCallResult);
 
-        // Get the message from the tool call or create a default one
-        String responseMessage = toolCallResult.arguments['message']?.toString() ??
-            'Processing...';
+        // Use the AI-supplied message when available
+        String responseMessage =
+            toolCallResult.message ?? toolCallResult.arguments['message']?.toString() ?? 'Processing...';
 
         // If tool execution failed, append error info
         if (!executedToolCall.success) {
@@ -233,12 +235,43 @@ class AgenticAIService {
       return 'ERROR: Robot not connected. Please connect your robot first.';
     }
 
-    // Check if robot is already running
-    if (_bluetoothService.sequencerState == SequencerState.running) {
-      return 'ERROR: Robot is already executing a command. Please wait.';
-    }
-
     try {
+      // Option B: explicit sequencer commands array
+      if (args['commands'] is List) {
+        final List<dynamic> rawCommands = args['commands'] as List<dynamic>;
+        if (rawCommands.isEmpty) {
+          return 'ERROR: No commands provided.';
+        }
+
+        // Validate structure
+        final List<Map<String, dynamic>> sequencerCommands = [];
+        for (final item in rawCommands) {
+          if (item is! Map<String, dynamic>) {
+            return 'ERROR: Each command must be an object.';
+          }
+          if (!item.containsKey('command')) {
+            return 'ERROR: Command object missing "command" field.';
+          }
+          // Optional safety: clamp speeds if present
+          final params = item['params'];
+          if (params is Map<String, dynamic>) {
+            if (params.containsKey('left_speed')) {
+              final int ls = (params['left_speed'] as num).toInt();
+              params['left_speed'] = ls.clamp(-255, 255);
+            }
+            if (params.containsKey('right_speed')) {
+              final int rs = (params['right_speed'] as num).toInt();
+              params['right_speed'] = rs.clamp(-255, 255);
+            }
+          }
+          sequencerCommands.add(item);
+        }
+
+        final sequenceJson = jsonEncode(sequencerCommands);
+        return await _runOrQueueSequence(sequenceJson);
+      }
+
+      // Option A: single high-level command -> map to DRIVE_DIRECT
       final String command = args['command'] as String;
       final int durationMs = args['duration_ms'] as int? ?? 1000;
       final int speed = args['speed'] as int? ?? 100;
@@ -263,13 +296,56 @@ class AgenticAIService {
         },
       };
 
-      // Execute command
-      await _bluetoothService.runCommandSequence(jsonEncode([commandJson]));
-
-      return 'SUCCESS: Command executed';
+      // Execute command (or queue if busy)
+      return await _runOrQueueSequence(jsonEncode([commandJson]));
     } catch (e) {
       return 'ERROR: Failed to execute command - $e';
     }
+  }
+
+  /// Runs a command sequence immediately if idle, otherwise enqueues it.
+  Future<String> _runOrQueueSequence(String commandJsonArray) async {
+    // If sequencer busy, enqueue and process later
+    if (_bluetoothService.sequencerState == SequencerState.running) {
+      _pendingCommandSequences.add(commandJsonArray);
+      _processCommandQueue();
+      return 'QUEUED: Robot is busy. Your command will run next.';
+    }
+
+    try {
+      await _bluetoothService.runCommandSequence(commandJsonArray);
+    } catch (e) {
+      return 'ERROR: Failed to start command - $e';
+    }
+
+    // Kick off any pending items after this one finishes
+    _processCommandQueue();
+    return 'SUCCESS: Command executed';
+  }
+
+  /// Simple FIFO queue processor that waits for the sequencer to be idle before dispatching.
+  void _processCommandQueue() {
+    if (_isProcessingQueue) return;
+    _isProcessingQueue = true;
+
+    () async {
+      while (_pendingCommandSequences.isNotEmpty) {
+        // Wait until sequencer is idle
+        while (_bluetoothService.sequencerState == SequencerState.running) {
+          await Future.delayed(const Duration(milliseconds: 150));
+        }
+
+        // If disconnected, drop remaining queue
+        if (!_bluetoothService.isConnected) {
+          _pendingCommandSequences.clear();
+          break;
+        }
+
+        final next = _pendingCommandSequences.removeAt(0);
+        await _bluetoothService.runCommandSequence(next);
+      }
+      _isProcessingQueue = false;
+    }();
   }
 
   /// Tool: Explain a robotics concept
