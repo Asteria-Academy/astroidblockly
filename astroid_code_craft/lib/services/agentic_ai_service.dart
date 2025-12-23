@@ -14,6 +14,7 @@ class AgenticAIService {
   final BluetoothService _bluetoothService;
   final List<String> _pendingCommandSequences = [];
   bool _isProcessingQueue = false;
+  static const int _maxQueueSize = 5; // avoid unbounded backlog
 
   AgenticAIService({
     required KolosalApiService apiService,
@@ -125,7 +126,7 @@ class AgenticAIService {
 
         // If tool execution failed, append error info
         if (!executedToolCall.success) {
-          responseMessage += '\n\n⚠️ ${executedToolCall.errorMessage}';
+          responseMessage += '\n\n ${executedToolCall.errorMessage}';
         } else if (executedToolCall.result.isNotEmpty) {
           // For status checks, append the result
           if (executedToolCall.toolName == 'get_robot_status') {
@@ -254,16 +255,25 @@ class AgenticAIService {
           }
           // Optional safety: clamp speeds if present
           final params = item['params'];
+          Map<String, dynamic> safeParams;
           if (params is Map<String, dynamic>) {
+            safeParams = Map<String, dynamic>.from(params);
             if (params.containsKey('left_speed')) {
               final int ls = (params['left_speed'] as num).toInt();
-              params['left_speed'] = ls.clamp(-255, 255);
+              safeParams['left_speed'] = ls.clamp(-255, 255);
             }
             if (params.containsKey('right_speed')) {
               final int rs = (params['right_speed'] as num).toInt();
-              params['right_speed'] = rs.clamp(-255, 255);
+              safeParams['right_speed'] = rs.clamp(-255, 255);
             }
+          } else {
+            safeParams = {};
           }
+          // Provide default duration for motion commands if missing
+          if (item['command'] == 'DRIVE_DIRECT' && !safeParams.containsKey('duration_ms')) {
+            safeParams['duration_ms'] = 1000;
+          }
+          item['params'] = safeParams;
           sequencerCommands.add(item);
         }
 
@@ -307,6 +317,9 @@ class AgenticAIService {
   Future<String> _runOrQueueSequence(String commandJsonArray) async {
     // If sequencer busy, enqueue and process later
     if (_bluetoothService.sequencerState == SequencerState.running) {
+      if (_pendingCommandSequences.length >= _maxQueueSize) {
+        return 'ERROR: Command queue is full. Please wait and try again.';
+      }
       _pendingCommandSequences.add(commandJsonArray);
       _processCommandQueue();
       return 'QUEUED: Robot is busy. Your command will run next.';
@@ -390,8 +403,10 @@ Focus on practical understanding, not just theory.
     }
 
     try {
+      // Clear any queued commands and stop current sequence
+      _pendingCommandSequences.clear();
       _bluetoothService.stopSequence();
-      return 'SUCCESS: Robot stopped';
+      return 'SUCCESS: Robot stopped and queue cleared';
     } catch (e) {
       return 'ERROR: Failed to stop robot - $e';
     }

@@ -322,6 +322,7 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
       _isProcessing = false;
     });
     _scrollToBottom();
+    _handleQueueNotification(agenticResponse.message);
 
     if (!mounted) return;
     if (_chatHistory.last.role == ChatRole.user) {
@@ -336,10 +337,38 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
     } else {
       _sttService.startListening(
         onResult: (finalText) {
-          _handleUserSubmit(finalText);
+          _confirmVoiceInput(finalText);
         },
       );
     }
+  }
+
+  void _confirmVoiceInput(String text) {
+    final cleaned = text.trim();
+    if (cleaned.isEmpty || !mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF141F44),
+          title: const Text('Kirim perintah suara?', style: TextStyle(color: Colors.white)),
+          content: Text(cleaned, style: const TextStyle(color: Colors.white70)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Ulangi', style: TextStyle(color: Colors.white70)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _handleUserSubmit(cleaned);
+              },
+              child: const Text('Kirim', style: TextStyle(color: Color(0xFFA4F2FF))),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _scrollToBottom() {
@@ -352,6 +381,31 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
         );
       }
     });
+  }
+
+  void _handleQueueNotification(String message) {
+    final normalized = message.toLowerCase();
+    if (normalized.startsWith('queued:') ||
+        normalized.contains('command queue is full') ||
+        normalized.contains('queue cleared')) {
+      _showSnack(message.replaceFirst(RegExp(r'^\w+:\s*', caseSensitive: false), ''));
+    }
+  }
+
+  void _showSnack(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          text,
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF1F2C52),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
