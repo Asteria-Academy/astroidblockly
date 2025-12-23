@@ -15,11 +15,11 @@ class SpeechToTextService {
 
     try {
       _isInitialized = await _speechToText.initialize(
-        onError: (error) => print('STT Error: $error'),
+        onError: (error) => debugPrint('STT Error: $error'),
         onStatus: (status) => _onStatusChanged(status),
       );
     } catch (e) {
-      print("Could not initialize SpeechToText: $e");
+      debugPrint("Could not initialize SpeechToText: $e");
       _isInitialized = false;
     }
     return _isInitialized;
@@ -58,7 +58,7 @@ class SpeechToTextService {
   }
 
   void _onStatusChanged(String status) {
-    print('STT Status: $status');
+    debugPrint('STT Status: $status');
     if (status == 'notListening' || status == 'done') {
       isListening.value = false;
     }
