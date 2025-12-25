@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../services/bluetooth_service.dart';
 import '../services/preferences_service.dart';
+import '../services/workspace_bridge_service.dart';
 import '../router/app_router.dart';
 import './splash_gate.dart';
 import '../utils/web_app_url.dart';
@@ -34,6 +35,9 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
   void dispose() {
     // Unsubscribe to avoid leaks.
     _btService.onSequencerStateChanged = null;
+    if (_webViewController != null) {
+      WorkspaceBridgeService.instance.unregister(_webViewController!);
+    }
     super.dispose();
   }
 
@@ -79,9 +83,9 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
       },
       child: Scaffold(
         body: SafeArea(
-          child: InAppWebView(
-            initialUrlRequest: URLRequest(url: WebUri(initialUrl)),
-            initialUserScripts: UnmodifiableListView<UserScript>([
+            child: InAppWebView(
+              initialUrlRequest: URLRequest(url: WebUri(initialUrl)),
+              initialUserScripts: UnmodifiableListView<UserScript>([
               UserScript(
                 source: """
                   window.addEventListener('flutterInAppWebViewPlatformReady', function(event) {
@@ -102,6 +106,7 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
             ),
             onWebViewCreated: (controller) {
               _webViewController = controller;
+              WorkspaceBridgeService.instance.register(controller);
               controller.addJavaScriptHandler(
                 handlerName: 'astroidAppChannel',
                 callback: (args) {

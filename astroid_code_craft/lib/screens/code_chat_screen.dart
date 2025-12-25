@@ -343,32 +343,58 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
     }
   }
 
-  void _confirmVoiceInput(String text) {
+  Future<void> _confirmVoiceInput(String text) async {
     final cleaned = text.trim();
     if (cleaned.isEmpty || !mounted) return;
-    showDialog(
+    _textController.text = cleaned;
+    _textController.selection = TextSelection.collapsed(offset: cleaned.length);
+
+    final confirmController = TextEditingController(text: cleaned);
+    final bool? shouldSend = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
           backgroundColor: const Color(0xFF141F44),
-          title: const Text('Kirim perintah suara?', style: TextStyle(color: Colors.white)),
-          content: Text(cleaned, style: const TextStyle(color: Colors.white70)),
+          title: const Text('Periksa dan kirim teks', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Anda bisa mengedit teks sebelum mengirim.',
+                style: TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: confirmController,
+                maxLines: null,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  filled: true,
+                  fillColor: Color(0xFF0F1D3C),
+                  border: OutlineInputBorder(borderSide: BorderSide.none),
+                ),
+              ),
+            ],
+          ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Ulangi', style: TextStyle(color: Colors.white70)),
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Edit di chat', style: TextStyle(color: Colors.white70)),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                _handleUserSubmit(cleaned);
-              },
+              onPressed: () => Navigator.of(ctx).pop(true),
               child: const Text('Kirim', style: TextStyle(color: Color(0xFFA4F2FF))),
             ),
           ],
         );
       },
     );
+
+    final finalText = confirmController.text.trim();
+    confirmController.dispose();
+    if (shouldSend == true) {
+      _handleUserSubmit(finalText);
+    }
   }
 
   void _scrollToBottom() {

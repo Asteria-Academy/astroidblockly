@@ -21,6 +21,8 @@ declare global {
     setSequencerState: (state: 'running' | 'idle') => void;
     updateSequencerState: (state: 'running' | 'idle') => void;
     generateCodeForExecution: () => string;
+    exportAgenticWorkspace: () => string;
+    applyAgenticWorkspace: (workspaceData: string) => boolean;
     toggleDebugView: () => void;
     setViewMode?: (mode: 'blocks' | 'chat') => void;
   }
@@ -884,7 +886,7 @@ async function generateWorkspaceThumbnail(): Promise<string | null> {
   javascriptGenerator.init(primaryWorkspace);
 
   const topBlocks = primaryWorkspace.getTopBlocks(true);
-  const startBlock = topBlocks.find(block => block.type === 'program_start');
+  const startBlock = topBlocks.find((block: Blockly.Block) => block.type === 'program_start');
   if (startBlock) {
     const firstCommandBlock = startBlock.getNextBlock();
     if (firstCommandBlock) {
@@ -895,6 +897,29 @@ async function generateWorkspaceThumbnail(): Promise<string | null> {
     }
   }
   return '[]';
+};
+
+(window as any).exportAgenticWorkspace = (): string => {
+  if (!primaryWorkspace) return '{}';
+  try {
+    const workspaceJson = Blockly.serialization.workspaces.save(primaryWorkspace);
+    return JSON.stringify(workspaceJson);
+  } catch (error) {
+    console.error('Agentic export failed:', error);
+    return '{}';
+  }
+};
+
+(window as any).applyAgenticWorkspace = (workspaceData: string): boolean => {
+  if (!primaryWorkspace || !workspaceData) return false;
+  try {
+    const parsed = JSON.parse(workspaceData);
+    Blockly.serialization.workspaces.load(parsed, primaryWorkspace);
+    return true;
+  } catch (error) {
+    console.error('Agentic workspace load failed:', error);
+    return false;
+  }
 };
 
 (window as any).getChallengeProgress = (): string => {
@@ -992,7 +1017,7 @@ function initializeWorkspace() {
       if (event.type === Blockly.Events.BLOCK_CREATE || 
           event.type === Blockly.Events.BLOCK_DELETE ||
           event.type === Blockly.Events.BLOCK_MOVE) {
-        const blockCount = primaryWorkspace?.getAllBlocks(false).filter(block => !block.isShadow()).length || 0;
+        const blockCount = primaryWorkspace?.getAllBlocks(false).filter((block: Blockly.Block) => !block.isShadow()).length || 0;
         const blockString = `${blockCount} block${blockCount !== 1 ? 's' : ''}`;
         
         const blocksEl = document.getElementById('metric-blocks');
@@ -1583,7 +1608,7 @@ function updateChallengeMetrics() {
   if (timeEl) timeEl.textContent = timeString;
   if (timeElFullscreen) timeElFullscreen.textContent = timeString;
 
-  const blockCount = primaryWorkspace?.getAllBlocks(false).filter(block => !block.isShadow()).length || 0;
+  const blockCount = primaryWorkspace?.getAllBlocks(false).filter((block: Blockly.Block) => !block.isShadow()).length || 0;
   const blockString = `${blockCount} block${blockCount !== 1 ? 's' : ''}`;
   
   const blocksEl = document.getElementById('metric-blocks');
@@ -1847,7 +1872,7 @@ function evaluateChallengeStars(sequencer: SimulatorSequencer | null) {
   const elapsedSeconds = elapsedMs / 1000;
 
   // Filter out shadow blocks to match metrics display
-  const blockCount = primaryWorkspace.getAllBlocks(false).filter(block => !block.isShadow()).length;
+  const blockCount = primaryWorkspace.getAllBlocks(false).filter((block: Blockly.Block) => !block.isShadow()).length;
 
   const blocksUsed = primaryWorkspace.getAllBlocks(false).map((block: Blockly.Block) => block.type);
 

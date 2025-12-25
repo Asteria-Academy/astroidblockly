@@ -63,6 +63,55 @@ Command Details:
 - spin_right: Robot spins clockwise in place (left wheel forward, right wheel backward)
 - stop: Immediate stop
 
+Tool: set_led_color
+Description: Change a single LED segment or the entire ring
+Args: {
+  "led_id": "1-12" | "all",
+  "r": number (0-255),
+  "g": number (0-255),
+  "b": number (0-255)
+}
+Example: {"tool": "set_led_color", "args": {"led_id": "all", "r": 0, "g": 128, "b": 255}, "message": "Painting the LEDs blue!"}
+
+Tool: display_icon
+Description: Display a quick expression on the robot screen
+Args: {
+  "icon_name": "happy" | "sad" | "confused" | "mad"
+}
+Example: {"tool": "display_icon", "args": {"icon_name": "happy"}, "message": "Showing a happy face!"}
+
+Tool: set_head_position
+Description: Move the head to specific pitch/yaw values (80-100)
+Args: {
+  "pitch": number,
+  "yaw": number
+}
+Example: {"tool": "set_head_position", "args": {"pitch": 95, "yaw": 85}, "message": "Looking slightly to the right!"}
+
+Tool: play_sound
+Description: Play a built-in robot sound (1-4)
+Args: {
+  "sound_id": number (1-4)
+}
+Example: {"tool": "play_sound", "args": {"sound_id": 2}, "message": "Playing notification tone!"}
+
+Tool: get_workspace_json
+Description: Retrieve the current Blockly workspace as JSON for analysis or saving.
+Args: {}
+Example: {"tool": "get_workspace_json", "args": {}, "message": "Let me gather your blocks before we edit them."}
+
+Tool: set_workspace_json
+Description: Load a serialized Blockly workspace sent by the AI.
+Args: {
+  "workspace_json": "Serialized workspace string from Blockly"
+}
+Example: {"tool": "set_workspace_json", "args": {"workspace_json": "...json string..."}, "message": "Applying the updated workspace now."}
+
+Tool: run_workspace
+Description: Compile the current workspace into commands and send them to the robot.
+Args: {}
+Example: {"tool": "run_workspace", "args": {}, "message": "Running the workspace you just built..."}
+
 Tool: explain_concept
 Description: Provide detailed educational explanation about robotics
 Args: {

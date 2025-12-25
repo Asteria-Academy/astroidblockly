@@ -7,6 +7,7 @@ import '../models/agentic_response.dart';
 import '../config/app_prompts.dart';
 import 'kolosal_api_service.dart';
 import 'bluetooth_service.dart';
+import 'workspace_bridge_service.dart';
 
 /// Agentic AI Service that enables the AI to take actions through tool calling
 class AgenticAIService {
@@ -61,6 +62,108 @@ class AgenticAIService {
           },
         },
         'required': ['command'],
+      },
+    ),
+    AITool(
+      name: 'set_led_color',
+      description: 'Change an individual LED segment or all LEDs',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'led_id': {
+            'type': 'string',
+            'description': 'LED id 1-12 or "all"',
+          },
+          'r': {
+            'type': 'number',
+            'description': 'Red value 0-255',
+          },
+          'g': {
+            'type': 'number',
+            'description': 'Green value 0-255',
+          },
+          'b': {
+            'type': 'number',
+            'description': 'Blue value 0-255',
+          },
+        },
+        'required': ['led_id', 'r', 'g', 'b'],
+      },
+    ),
+    AITool(
+      name: 'display_icon',
+      description: 'Show an expression icon (happy, sad, confused, mad)',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'icon_name': {
+            'type': 'string',
+            'enum': ['happy', 'sad', 'confused', 'mad'],
+          },
+        },
+        'required': ['icon_name'],
+      },
+    ),
+    AITool(
+      name: 'set_head_position',
+      description: 'Adjust the robot head pitch/yaw',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'pitch': {
+            'type': 'number',
+            'description': 'Pitch degrees (e.g., 80-100)',
+          },
+          'yaw': {
+            'type': 'number',
+            'description': 'Yaw degrees (e.g., 80-100)',
+          },
+        },
+        'required': ['pitch', 'yaw'],
+      },
+    ),
+    AITool(
+      name: 'play_sound',
+      description: 'Play a built-in robot sound',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'sound_id': {
+            'type': 'number',
+            'description': 'Sound id (1-4)',
+          },
+        },
+        'required': ['sound_id'],
+      },
+    ),
+    AITool(
+      name: 'get_workspace_json',
+      description: 'Retrieve the current Blockly workspace as JSON',
+      parameters: {
+        'type': 'object',
+        'properties': {},
+      },
+    ),
+    AITool(
+      name: 'set_workspace_json',
+      description: 'Load a Blockly workspace from serialized JSON',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'workspace_json': {
+            'type': 'string',
+            'description': 'Serialized workspace JSON string',
+          },
+        },
+        'required': ['workspace_json'],
+      },
+    ),
+    AITool(
+      name: 'run_workspace',
+      description: 'Run the code generated from the current workspace',
+      parameters: {
+        'type': 'object',
+        'properties': {},
       },
     ),
     AITool(
@@ -194,6 +297,109 @@ class AgenticAIService {
             success: !result.startsWith('ERROR'),
           );
 
+        case 'set_led_color':
+          final ledId = toolCall.arguments['led_id'] ?? 'all';
+          final int red = (toolCall.arguments['r'] as num?)?.toInt().clamp(0, 255) ?? 0;
+          final int green = (toolCall.arguments['g'] as num?)?.toInt().clamp(0, 255) ?? 0;
+          final int blue = (toolCall.arguments['b'] as num?)?.toInt().clamp(0, 255) ?? 0;
+          final command = {
+            'command': 'SET_LED_COLOR',
+            'params': {
+              'led_id': ledId,
+              'r': red,
+              'g': green,
+              'b': blue,
+            },
+          };
+          final result = await _runOrQueueSequence(jsonEncode([command]));
+          return toolCall.copyWith(result: result, success: !result.startsWith('ERROR'));
+
+        case 'display_icon':
+          final iconName = (toolCall.arguments['icon_name'] as String?) ?? 'happy';
+          final command = {
+            'command': 'DISPLAY_ICON',
+            'params': {'icon_name': iconName},
+          };
+          final iconResult = await _runOrQueueSequence(jsonEncode([command]));
+          return toolCall.copyWith(result: iconResult, success: !iconResult.startsWith('ERROR'));
+
+        case 'set_head_position':
+          final pitch = (toolCall.arguments['pitch'] as num?)?.toInt().clamp(80, 100) ?? 90;
+          final yaw = (toolCall.arguments['yaw'] as num?)?.toInt().clamp(80, 100) ?? 90;
+          final command = {
+            'command': 'SET_HEAD_POSITION',
+            'params': {'pitch': pitch, 'yaw': yaw},
+          };
+          final headResult = await _runOrQueueSequence(jsonEncode([command]));
+          return toolCall.copyWith(result: headResult, success: !headResult.startsWith('ERROR'));
+
+        case 'play_sound':
+          final soundId = (toolCall.arguments['sound_id'] as num?)?.toInt().clamp(1, 4) ?? 1;
+          final command = {
+            'command': 'PLAY_INTERNAL_SOUND',
+            'params': {'sound_id': soundId},
+          };
+          final soundResult = await _runOrQueueSequence(jsonEncode([command]));
+          return toolCall.copyWith(result: soundResult, success: !soundResult.startsWith('ERROR'));
+
+        case 'get_workspace_json':
+          final workspaceJson = await WorkspaceBridgeService.instance.exportWorkspaceJson();
+          if (workspaceJson == null || workspaceJson.isEmpty) {
+            return toolCall.copyWith(
+              result: '',
+              success: false,
+              errorMessage: 'Workspace bridge unavailable. Please open the Blockly screen.',
+            );
+          }
+          return toolCall.copyWith(result: workspaceJson, success: true);
+
+        case 'set_workspace_json':
+          String? workspaceJson = toolCall.arguments['workspace_json'] as String?;
+          if (workspaceJson == null) {
+            final alt = toolCall.arguments['workspace'] ?? toolCall.arguments['workspaceJson'];
+            if (alt != null) {
+              workspaceJson = alt is String ? alt : jsonEncode(alt);
+            }
+          }
+          if (workspaceJson == null) {
+            return toolCall.copyWith(
+              result: '',
+              success: false,
+              errorMessage: 'Workspace JSON missing.',
+            );
+          }
+          final applied =
+              await WorkspaceBridgeService.instance.applyWorkspaceJson(workspaceJson);
+          if (!applied) {
+            return toolCall.copyWith(
+              result: '',
+              success: false,
+              errorMessage: 'Failed to load workspace. Make sure the webview is open.',
+            );
+          }
+          return toolCall.copyWith(result: 'Workspace loaded', success: true);
+
+        case 'run_workspace':
+          final commandJson = await WorkspaceBridgeService.instance.exportCommandJson();
+          if (commandJson == null || commandJson.trim().isEmpty) {
+            return toolCall.copyWith(
+              result: '',
+              success: false,
+              errorMessage: 'Workspace unavailable. Please open the Blockly screen.',
+            );
+          }
+          if (commandJson.trim() == '[]') {
+            return toolCall.copyWith(
+              result: 'Workspace has no executable commands.',
+              success: true,
+            );
+          }
+          final runResult = await _runOrQueueSequence(commandJson);
+          return toolCall.copyWith(
+            result: runResult,
+            success: !runResult.startsWith('ERROR'),
+          );
+
         case 'explain_concept':
           final result = await _explainConcept(toolCall.arguments);
           return toolCall.copyWith(result: result, success: true);
@@ -246,12 +452,17 @@ class AgenticAIService {
 
         // Validate structure
         final List<Map<String, dynamic>> sequencerCommands = [];
+        bool hasInfiniteLoop = false;
         for (final item in rawCommands) {
           if (item is! Map<String, dynamic>) {
             return 'ERROR: Each command must be an object.';
           }
           if (!item.containsKey('command')) {
             return 'ERROR: Command object missing "command" field.';
+          }
+          final commandName = (item['command'] as String).toUpperCase();
+          if (commandName == 'META_START_INFINITE_LOOP') {
+            hasInfiniteLoop = true;
           }
           // Optional safety: clamp speeds if present
           final params = item['params'];
@@ -278,7 +489,11 @@ class AgenticAIService {
         }
 
         final sequenceJson = jsonEncode(sequencerCommands);
-        return await _runOrQueueSequence(sequenceJson);
+        final executionResult = await _runOrQueueSequence(sequenceJson);
+        if (hasInfiniteLoop) {
+          return '$executionResult\n\nNOTE: This sequence contains an infinite loop. Use the stop button or the "stop_robot" tool to cancel it when needed.';
+        }
+        return executionResult;
       }
 
       // Option A: single high-level command -> map to DRIVE_DIRECT
