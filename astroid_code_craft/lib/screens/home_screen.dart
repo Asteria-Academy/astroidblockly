@@ -25,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Project> _projects = [];
   bool _isLoading = true;
+  bool _isShowcaseRegistered = false;
 
   final _audioCache = AudioCache(prefix: 'assets/sounds/');
 
@@ -46,6 +47,22 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Register ShowcaseView FIRST before anything else
+    try {
+      ShowcaseView.register(
+        enableAutoScroll: false,
+        disableBarrierInteraction: false,
+        disableMovingAnimation: true,
+        disableScaleAnimation: true,
+      );
+      _isShowcaseRegistered = true;
+      debugPrint('✅ ShowcaseView registered successfully');
+    } catch (e) {
+      debugPrint('❌ Error registering ShowcaseView: $e');
+      _isShowcaseRegistered = false;
+    }
+
     _bubblePointOnePlayer = AudioPlayer();
     _bubblePointTwoPlayer = AudioPlayer();
     unawaited(_bubblePointOnePlayer.setPlayerMode(PlayerMode.lowLatency));
@@ -64,14 +81,6 @@ class _HomeScreenState extends State<HomeScreen> {
     unawaited(_bubblePointOnePlayer.setAudioContext(audioContext));
     unawaited(_bubblePointTwoPlayer.setAudioContext(audioContext));
 
-    // Register ShowcaseView with configuration
-    ShowcaseView.register(
-      enableAutoScroll: false,
-      disableBarrierInteraction: false,
-      disableMovingAnimation: true,
-      disableScaleAnimation: true,
-    );
-
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       unawaited(_audioCache.load(_bubblePointOneAsset));
       unawaited(_audioCache.load(_bubblePointTwoAsset));
@@ -79,18 +88,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Check if showcase should be shown (first run only)
       final prefs = await PreferencesService.getInstance();
-      if (!prefs.hasShownShowcase() && mounted) {
+      if (!prefs.hasShownShowcase() && mounted && _isShowcaseRegistered) {
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) {
-          ShowcaseView.get().startShowCase([
-            _navHomeKey,
-            _navCodeKey,
-            _navChallengesKey,
-            _navConnectKey,
-            _createAdventureKey,
-            _continueJourneyKey,
-            _missionControlKey,
-          ]);
+          _startShowcase();
           await prefs.setShowcaseShown(true);
         }
       }
@@ -98,10 +99,32 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startShowcase() {
-    debugPrint('🎯 _startShowcase called, mounted=$mounted');
+    debugPrint(
+      '🎯 _startShowcase called, mounted=$mounted, registered=$_isShowcaseRegistered',
+    );
+
     if (!mounted) {
       debugPrint('🎯 Cannot start showcase: widget not mounted');
       return;
+    }
+
+    if (!_isShowcaseRegistered) {
+      debugPrint(
+        '🎯 Cannot start showcase: ShowcaseView not registered, attempting to register...',
+      );
+      try {
+        ShowcaseView.register(
+          enableAutoScroll: false,
+          disableBarrierInteraction: false,
+          disableMovingAnimation: true,
+          disableScaleAnimation: true,
+        );
+        _isShowcaseRegistered = true;
+        debugPrint('✅ ShowcaseView re-registered successfully');
+      } catch (e) {
+        debugPrint('❌ Error re-registering ShowcaseView: $e');
+        return;
+      }
     }
 
     try {
@@ -177,7 +200,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     unawaited(_bubblePointOnePlayer.dispose());
     unawaited(_bubblePointTwoPlayer.dispose());
-    ShowcaseView.get().unregister();
+
+    if (_isShowcaseRegistered) {
+      try {
+        ShowcaseView.get().unregister();
+        _isShowcaseRegistered = false;
+        debugPrint('✅ ShowcaseView unregistered successfully');
+      } catch (e) {
+        debugPrint('❌ Error unregistering ShowcaseView: $e');
+      }
+    }
+
     super.dispose();
   }
 
