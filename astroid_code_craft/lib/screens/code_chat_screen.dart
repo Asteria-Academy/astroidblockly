@@ -15,7 +15,9 @@ import '../router/app_router.dart';
 import '../l10n/generated/app_localizations.dart';
 
 class CodeChatScreen extends StatelessWidget {
-  const CodeChatScreen({super.key});
+  const CodeChatScreen({super.key, this.onBackToBlocks});
+
+  final VoidCallback? onBackToBlocks;
 
   @override
   Widget build(BuildContext context) {
@@ -32,11 +34,15 @@ class CodeChatScreen extends StatelessWidget {
             child: _EditorModeToggle(
               activeMode: _EditorSurface.chat,
               onBlocksSelected: () {
-                Navigator.pushReplacementNamed(
-                  context,
-                  AppRoutes.webview,
-                  arguments: {'action': 'load_last'},
-                );
+                if (onBackToBlocks != null) {
+                  onBackToBlocks!();
+                } else {
+                  Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.webview,
+                    arguments: {'action': 'load_last'},
+                  );
+                }
               },
             ),
           ),
@@ -245,10 +251,12 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
         _sttInitialized = isReady;
       });
     });
+    _sttService.lastError.addListener(_handleSttError);
   }
 
   @override
   void dispose() {
+    _sttService.lastError.removeListener(_handleSttError);
     _sttService.dispose();
     _textController.dispose();
     _scrollController.dispose();
@@ -407,6 +415,13 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
         );
       }
     });
+  }
+
+  void _handleSttError() {
+    final message = _sttService.lastError.value;
+    if (message == null || !mounted) return;
+    _sttService.lastError.value = null;
+    _showSnack("Speech recognition error: $message");
   }
 
   void _handleQueueNotification(String message) {

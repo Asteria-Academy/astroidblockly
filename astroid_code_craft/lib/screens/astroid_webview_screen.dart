@@ -10,6 +10,7 @@ import '../services/preferences_service.dart';
 import '../services/workspace_bridge_service.dart';
 import '../router/app_router.dart';
 import './splash_gate.dart';
+import 'code_chat_screen.dart';
 import '../utils/web_app_url.dart';
 
 class AstroidWebViewScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class AstroidWebViewScreen extends StatefulWidget {
 class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
   final BluetoothService _btService = BluetoothService.instance;
   InAppWebViewController? _webViewController;
+  bool _showChat = false;
 
   @override
   void initState() {
@@ -82,8 +84,10 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       },
       child: Scaffold(
-        body: SafeArea(
-            child: InAppWebView(
+        body: Stack(
+          children: [
+            SafeArea(
+              child: InAppWebView(
               initialUrlRequest: URLRequest(url: WebUri(initialUrl)),
               initialUserScripts: UnmodifiableListView<UserScript>([
               UserScript(
@@ -142,10 +146,9 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
                       } else if (decoded['event'] == 'stop_code') {
                         _btService.stopSequence();
                       } else if (decoded['event'] == 'open_chat_ai') {
-                        Navigator.pushReplacementNamed(
-                          context,
-                          AppRoutes.codeChat,
-                        );
+                        setState(() {
+                          _showChat = true;
+                        });
                       } else if (decoded['event'] == 'navigate_home') {
                         _btService.stopSequence();
                         Navigator.pushReplacementNamed(context, AppRoutes.home);
@@ -211,6 +214,18 @@ class _AstroidWebViewScreenState extends State<AstroidWebViewScreen> {
               );
             },
           ),
+        ),
+            if (_showChat)
+              Positioned.fill(
+                child: CodeChatScreen(
+                  onBackToBlocks: () {
+                    setState(() {
+                      _showChat = false;
+                    });
+                  },
+                ),
+              ),
+          ],
         ),
       ),
     );

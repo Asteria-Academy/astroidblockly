@@ -216,32 +216,27 @@ class AgenticAIService {
         );
       }
 
-      // Try to parse as tool call
-      final toolCallResult = _parseToolCall(aiResponse);
+      // Try to parse as tool call(s)
+      final List<ToolCall> toolCallResults = _parseToolCalls(aiResponse);
 
-      if (toolCallResult != null) {
-        // It's a tool call - execute it
-        final executedToolCall = await _executeTool(toolCallResult);
+      if (toolCallResults.isNotEmpty) {
+        final List<ToolCall> executedToolCalls = [];
+        final List<String> responseSegments = [];
 
-        // Use the AI-supplied message when available
-        String responseMessage =
-            toolCallResult.message ?? toolCallResult.arguments['message']?.toString() ?? 'Processing...';
+        for (final toolCall in toolCallResults) {
+          final executedCall = await _executeTool(toolCall);
+          executedToolCalls.add(executedCall);
 
-        // If tool execution failed, append error info
-        if (!executedToolCall.success) {
-          responseMessage += '\n\n ${executedToolCall.errorMessage}';
-        } else if (executedToolCall.result.isNotEmpty) {
-          // For status checks, append the result
-          if (executedToolCall.toolName == 'get_robot_status') {
-            responseMessage = _formatRobotStatus(executedToolCall.result);
-          } else if (executedToolCall.toolName == 'explain_concept') {
-            responseMessage = executedToolCall.result;
+          final toolMessage = _buildToolResponseMessage(executedCall, toolCall);
+          if (toolMessage.trim().isNotEmpty) {
+            responseSegments.add(toolMessage.trim());
           }
         }
 
+        final combinedMessage = responseSegments.join('\n\n');
         return AgenticResponse(
-          message: responseMessage,
-          toolCalls: [executedToolCall],
+          message: combinedMessage.isEmpty ? 'Processing...' : combinedMessage,
+          toolCalls: executedToolCalls,
           requiresConfirmation: false,
         );
       } else {
@@ -259,27 +254,77 @@ class AgenticAIService {
   }
 
   /// Parse AI response to detect tool calls
-  ToolCall? _parseToolCall(String response) {
+  List<ToolCall> _parseToolCalls(String response) {
+    final cleaned = _stripCodeBlocks(response);
+    final List<ToolCall> calls = [];
+
     try {
-      // Remove any markdown code blocks
-      String cleaned = response.trim();
-      if (cleaned.startsWith('```json')) {
-        cleaned = cleaned.replaceAll('```json', '').replaceAll('```', '').trim();
-      } else if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replaceAll('```', '').trim();
-      }
-
-      // Try to parse as JSON
       final json = jsonDecode(cleaned);
-
       if (json is Map<String, dynamic> && json.containsKey('tool')) {
-        return ToolCall.fromJson(json);
+        calls.add(ToolCall.fromJson(json));
+        return calls;
       }
-    } catch (e) {
-      // Not a tool call, just normal text
-      debugPrint('Not a tool call, treating as normal response');
+      if (json is List) {
+        for (final item in json) {
+          if (item is Map<String, dynamic> && item.containsKey('tool')) {
+            calls.add(ToolCall.fromJson(item));
+          }
+        }
+        return calls;
+      }
+    } catch (_) {
+      debugPrint('Not a single JSON block, trying to split');
     }
-    return null;
+
+    for (final chunk in _splitJsonChunks(cleaned)) {
+      try {
+        final json = jsonDecode(chunk);
+        if (json is Map<String, dynamic> && json.containsKey('tool')) {
+          calls.add(ToolCall.fromJson(json));
+        }
+      } catch (_) {
+        debugPrint('Failed to parse chunk as tool call: $chunk');
+      }
+    }
+
+    return calls;
+  }
+
+  String _stripCodeBlocks(String response) {
+    String cleaned = response.trim();
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.replaceAll('```json', '').replaceAll('```', '').trim();
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replaceAll('```', '').trim();
+    }
+    return cleaned;
+  }
+
+  List<String> _splitJsonChunks(String input) {
+    // Improved regex to split multiple JSON objects like {...}{...} or {...}\n{...}
+    final regex = RegExp(r'\{[^{}]*\}');
+    final matches = regex.allMatches(input);
+    return matches.map((m) => m.group(0)!).toList();
+  }
+
+  String _buildToolResponseMessage(ToolCall executedCall, ToolCall originalCall) {
+    String responseMessage =
+        originalCall.message ?? originalCall.arguments['message']?.toString() ?? '';
+
+    if (!executedCall.success) {
+      final errorDetails = executedCall.errorMessage ?? 'Tool execution failed';
+      responseMessage = responseMessage.isEmpty
+          ? errorDetails
+          : '$responseMessage\n\n$errorDetails';
+    } else if (executedCall.toolName == 'get_robot_status') {
+      responseMessage = _formatRobotStatus(executedCall.result);
+    } else if (executedCall.toolName == 'explain_concept') {
+      responseMessage = executedCall.result.isNotEmpty ? executedCall.result : responseMessage;
+    } else if (executedCall.result.isNotEmpty) {
+      responseMessage = executedCall.result;
+    }
+
+    return responseMessage;
   }
 
   /// Execute a tool and return the result
@@ -305,7 +350,7 @@ class AgenticAIService {
           final command = {
             'command': 'SET_LED_COLOR',
             'params': {
-              'led_id': ledId,
+              'led_id': ledId.toString(),
               'r': red,
               'g': green,
               'b': blue,
@@ -496,7 +541,7 @@ class AgenticAIService {
         return executionResult;
       }
 
-      // Option A: single high-level command -> map to DRIVE_DIRECT
+      // Option A: single high-level command -> map to MOVE_TIMED / TURN_TIMED
       final String command = args['command'] as String;
       final int durationMs = args['duration_ms'] as int? ?? 1000;
       final int speed = args['speed'] as int? ?? 100;
@@ -506,23 +551,78 @@ class AgenticAIService {
         return 'ERROR: Speed must be between 0 and 255';
       }
 
-      // Calculate left and right speeds based on command
-      final speeds = _calculateMotorSpeeds(command, speed);
-      final int leftSpeed = speeds['left']!;
-      final int rightSpeed = speeds['right']!;
+      // Map to hardware commands
+      Map<String, dynamic> hardwareCommand;
+      
+      switch (command.toLowerCase()) {
+        case 'move_forward':
+        case 'forward':
+        case 'maju':
+           hardwareCommand = {
+            'command': 'MOVE_TIMED',
+            'params': {'left_speed': speed, 'right_speed': speed, 'duration_ms': durationMs}
+          };
+          break;
+          
+        case 'move_backward':
+        case 'backward':
+        case 'mundur':
+           hardwareCommand = {
+            'command': 'MOVE_TIMED',
+            'params': {'left_speed': -speed, 'right_speed': -speed, 'duration_ms': durationMs}
+          };
+          break;
+          
+        case 'turn_left':
+        case 'left':
+        case 'kiri':
+           hardwareCommand = {
+            'command': 'TURN_TIMED',
+            'params': {'left_speed': -speed, 'right_speed': speed, 'duration_ms': durationMs}
+          };
+          break;
+          
+        case 'turn_right':
+        case 'right':
+        case 'kanan':
+           hardwareCommand = {
+            'command': 'TURN_TIMED',
+            'params': {'left_speed': speed, 'right_speed': -speed, 'duration_ms': durationMs}
+          };
+          break;
+          
+        case 'spin_left':
+        case 'rotate_left':
+        case 'putar_kiri':
+           hardwareCommand = {
+            'command': 'TURN_TIMED',
+            'params': {'left_speed': -speed, 'right_speed': speed, 'duration_ms': durationMs}
+          };
+          break;
+          
+         case 'spin_right':
+         case 'rotate_right':
+         case 'putar_kanan':
+           hardwareCommand = {
+            'command': 'TURN_TIMED',
+             'params': {'left_speed': speed, 'right_speed': -speed, 'duration_ms': durationMs}
+          };
+          break;
 
-      // Build command JSON
-      final Map<String, dynamic> commandJson = {
-        'command': 'DRIVE_DIRECT',
-        'params': {
-          'duration_ms': durationMs,
-          'left_speed': leftSpeed,
-          'right_speed': rightSpeed,
-        },
-      };
+        case 'stop':
+        case 'berhenti':
+           hardwareCommand = {
+            'command': 'DRIVE_DIRECT',
+            'params': {'left_speed': 0, 'right_speed': 0}
+          };
+          break;
+          
+        default:
+          return 'ERROR: Unknown command $command';
+      }
 
       // Execute command (or queue if busy)
-      return await _runOrQueueSequence(jsonEncode([commandJson]));
+      return await _runOrQueueSequence(jsonEncode([hardwareCommand]));
     } catch (e) {
       return 'ERROR: Failed to execute command - $e';
     }

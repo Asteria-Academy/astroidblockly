@@ -9,13 +9,18 @@ class SpeechToTextService {
   // Notifiers to update the UI
   final ValueNotifier<bool> isListening = ValueNotifier(false);
   final ValueNotifier<String> lastWords = ValueNotifier("");
+  final ValueNotifier<String?> lastError = ValueNotifier(null);
 
   Future<bool> initialize() async {
     if (_isInitialized) return true;
 
     try {
       _isInitialized = await _speechToText.initialize(
-        onError: (error) => debugPrint('STT Error: $error'),
+        onError: (error) {
+          debugPrint('STT Error: $error');
+          isListening.value = false;
+          lastError.value = error.errorMsg ?? 'Speech recognition error';
+        },
         onStatus: (status) => _onStatusChanged(status),
       );
     } catch (e) {
@@ -31,6 +36,7 @@ class SpeechToTextService {
     if (!_isInitialized || isListening.value) return;
 
     lastWords.value = "";
+    lastError.value = null;
     isListening.value = true;
     _speechToText.listen(
       onResult: (SpeechRecognitionResult result) {
@@ -68,5 +74,6 @@ class SpeechToTextService {
   void dispose() {
     isListening.dispose();
     lastWords.dispose();
+    lastError.dispose();
   }
 }
