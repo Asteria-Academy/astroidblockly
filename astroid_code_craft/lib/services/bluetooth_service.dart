@@ -409,10 +409,10 @@ class BluetoothService with ChangeNotifier {
         );
         await Future.delayed(Duration(milliseconds: duration));
       } else {
-        await Future.delayed(const Duration(milliseconds: 50));
+        await Future.delayed(const Duration(milliseconds: 500));
       }
     } else {
-      await Future.delayed(const Duration(milliseconds: 50));
+      await Future.delayed(const Duration(milliseconds: 500));
     }
   }
 

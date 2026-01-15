@@ -13,9 +13,6 @@ import 'workspace_bridge_service.dart';
 class AgenticAIService {
   final KolosalApiService _apiService;
   final BluetoothService _bluetoothService;
-  final List<String> _pendingCommandSequences = [];
-  bool _isProcessingQueue = false;
-  static const int _maxQueueSize = 5; // avoid unbounded backlog
 
   AgenticAIService({
     required KolosalApiService apiService,
@@ -220,17 +217,57 @@ class AgenticAIService {
       final List<ToolCall> toolCallResults = _parseToolCalls(aiResponse);
 
       if (toolCallResults.isNotEmpty) {
+        // --- GUARDRAIL: Removed Queue Limit ---
+        // We now batch commands into a single JSON sequence if possible.
+
         final List<ToolCall> executedToolCalls = [];
         final List<String> responseSegments = [];
+        final List<Map<String, dynamic>> hardwareCommandBatch = [];
+        int nonHardwareToolCount = 0;
 
+        // 1. First Pass: Collect hardware commands and count others
         for (final toolCall in toolCallResults) {
-          final executedCall = await _executeTool(toolCall);
-          executedToolCalls.add(executedCall);
-
-          final toolMessage = _buildToolResponseMessage(executedCall, toolCall);
-          if (toolMessage.trim().isNotEmpty) {
-            responseSegments.add(toolMessage.trim());
+          final cmds = await _buildHardwareCommands(toolCall);
+          if (cmds != null) {
+            hardwareCommandBatch.addAll(cmds);
+          } else {
+            nonHardwareToolCount++;
           }
+        }
+
+        // 2. Execution Strategy
+        if (hardwareCommandBatch.isNotEmpty && nonHardwareToolCount == 0) {
+           // OPTION A: Pure hardware sequence -> Send as BATCH
+           // This is much faster and cleaner (no individual sleeps in AgenticService)
+           final batchToolCall = ToolCall(
+             toolName: 'execute_robot_command',
+             toolId: 'batch_${DateTime.now().millisecondsSinceEpoch}',
+             arguments: {'commands': hardwareCommandBatch},
+           );
+           
+           final executedCall = await _executeTool(batchToolCall);
+           executedToolCalls.add(executedCall);
+           // Add original calls to response list for UI reference if needed, 
+           // but we only executed one big command.
+           // For the chat history, we might want to show what happened.
+
+           final toolMessage = _buildToolResponseMessage(executedCall, batchToolCall);
+             if (toolMessage.trim().isNotEmpty) {
+               responseSegments.add(toolMessage.trim());
+             }
+
+        } else {
+           // OPTION B: Mixed commands -> Execute Sequentially (Fallback)
+           // If we have "Explain concept" mixed with "Move", we run them one by one.
+            for (final toolCall in toolCallResults) {
+              final executedCall = await _executeTool(toolCall);
+              executedToolCalls.add(executedCall);
+    
+              final toolMessage = _buildToolResponseMessage(executedCall, toolCall);
+              if (toolMessage.trim().isNotEmpty) {
+                responseSegments.add(toolMessage.trim());
+              }
+            }
         }
 
         final combinedMessage = responseSegments.join('\n\n');
@@ -239,6 +276,7 @@ class AgenticAIService {
           toolCalls: executedToolCalls,
           requiresConfirmation: false,
         );
+
       } else {
         // Normal text response
         return AgenticResponse(
@@ -301,10 +339,40 @@ class AgenticAIService {
   }
 
   List<String> _splitJsonChunks(String input) {
-    // Improved regex to split multiple JSON objects like {...}{...} or {...}\n{...}
-    final regex = RegExp(r'\{[^{}]*\}');
-    final matches = regex.allMatches(input);
-    return matches.map((m) => m.group(0)!).toList();
+    final List<String> chunks = [];
+    int braceCount = 0;
+    int startIndex = -1;
+    bool inString = false;
+    bool isEscaped = false;
+
+    for (int i = 0; i < input.length; i++) {
+      final char = input[i];
+
+      if (inString) {
+        if (char == '\\' && !isEscaped) {
+          isEscaped = true;
+        } else {
+          if (char == '"' && !isEscaped) {
+            inString = false;
+          }
+          isEscaped = false;
+        }
+      } else {
+        if (char == '"') {
+          inString = true;
+        } else if (char == '{') {
+          if (braceCount == 0) startIndex = i;
+          braceCount++;
+        } else if (char == '}') {
+          braceCount--;
+          if (braceCount == 0 && startIndex != -1) {
+            chunks.add(input.substring(startIndex, i + 1));
+            startIndex = -1;
+          }
+        }
+      }
+    }
+    return chunks;
   }
 
   String _buildToolResponseMessage(ToolCall executedCall, ToolCall originalCall) {
@@ -347,10 +415,19 @@ class AgenticAIService {
           final int red = (toolCall.arguments['r'] as num?)?.toInt().clamp(0, 255) ?? 0;
           final int green = (toolCall.arguments['g'] as num?)?.toInt().clamp(0, 255) ?? 0;
           final int blue = (toolCall.arguments['b'] as num?)?.toInt().clamp(0, 255) ?? 0;
+          
+          // Fix: Ensure led_id is int if possible (e.g. 1 instead of "1"), else string ("all")
+          dynamic cleanLedId = ledId;
+          if (ledId is String && int.tryParse(ledId) != null) {
+            cleanLedId = int.parse(ledId);
+          } else if (ledId is num) {
+            cleanLedId = ledId.toInt();
+          }
+
           final command = {
             'command': 'SET_LED_COLOR',
             'params': {
-              'led_id': ledId.toString(),
+              'led_id': cleanLedId,
               'r': red,
               'g': green,
               'b': blue,
@@ -389,11 +466,10 @@ class AgenticAIService {
 
         case 'get_workspace_json':
           final workspaceJson = await WorkspaceBridgeService.instance.exportWorkspaceJson();
-          if (workspaceJson == null || workspaceJson.isEmpty) {
+          if (workspaceJson == null || workspaceJson.isEmpty || workspaceJson == '{}') {
             return toolCall.copyWith(
-              result: '',
-              success: false,
-              errorMessage: 'Workspace bridge unavailable. Please open the Blockly screen.',
+              result: 'Workspace is empty.',
+              success: true,
             );
           }
           return toolCall.copyWith(result: workspaceJson, success: true);
@@ -470,6 +546,101 @@ class AgenticAIService {
     }
   }
 
+  /// Helper: Build hardware command list from a ToolCall without executing it
+  /// Returns null if the tool is not a hardware command
+  Future<List<Map<String, dynamic>>?> _buildHardwareCommands(ToolCall toolCall) async {
+      switch (toolCall.toolName) {
+        case 'execute_robot_command':
+             final args = toolCall.arguments;
+
+             // OPTION B: Explicit commands list (Restored for Looping support)
+             if (args['commands'] is List) {
+               final List<dynamic> rawCommands = args['commands'] as List<dynamic>;
+               final List<Map<String, dynamic>> sequencerCommands = [];
+               for (final item in rawCommands) {
+                 if (item is Map<String, dynamic>) {
+                   sequencerCommands.add(item);
+                 }
+               }
+               return sequencerCommands;
+             }
+
+             // OPTION A: Single command
+             final String command = args['command'] as String;
+             int durationMs = args['duration_ms'] as int? ?? 1000;
+             int speed = args['speed'] as int? ?? 100;
+
+             // Guardrails
+             if (speed > 100) speed = 100;
+             if (speed < 0) speed = 0;
+             if (durationMs > 10000) durationMs = 10000;
+
+             Map<String, dynamic>? singleCmd;
+
+             switch (command.toLowerCase()) {
+                case 'move_forward':
+                case 'forward': 
+                case 'maju': singleCmd = {'command': 'MOVE_TIMED', 'params': {'left_speed': speed, 'right_speed': speed, 'duration_ms': durationMs}}; break;
+                
+                case 'move_backward':
+                case 'backward':
+                case 'mundur': singleCmd = {'command': 'MOVE_TIMED', 'params': {'left_speed': -speed, 'right_speed': -speed, 'duration_ms': durationMs}}; break;
+
+                case 'turn_left':
+                case 'left':
+                case 'belok_kiri':
+                case 'kiri': singleCmd = {'command': 'TURN_TIMED', 'params': {'left_speed': -speed, 'right_speed': speed, 'duration_ms': durationMs}}; break;
+
+                case 'turn_right':
+                case 'right':
+                case 'belok_kanan':
+                case 'kanan': singleCmd = {'command': 'TURN_TIMED', 'params': {'left_speed': speed, 'right_speed': -speed, 'duration_ms': durationMs}}; break;
+                
+                case 'spin_left': singleCmd = {'command': 'TURN_TIMED', 'params': {'left_speed': -speed, 'right_speed': speed, 'duration_ms': durationMs}}; break;
+                case 'spin_right': singleCmd = {'command': 'TURN_TIMED', 'params': {'left_speed': speed, 'right_speed': -speed, 'duration_ms': durationMs}}; break;
+                
+                case 'stop': singleCmd = {'command': 'DRIVE_DIRECT', 'params': {'left_speed': 0, 'right_speed': 0}}; break;
+             }
+             
+             return singleCmd != null ? [singleCmd] : null;
+
+        case 'set_led_color':
+             final ledId = toolCall.arguments['led_id'] ?? 'all';
+             final int red = (toolCall.arguments['r'] as num?)?.toInt().clamp(0, 255) ?? 0;
+             final int green = (toolCall.arguments['g'] as num?)?.toInt().clamp(0, 255) ?? 0;
+             final int blue = (toolCall.arguments['b'] as num?)?.toInt().clamp(0, 255) ?? 0;
+             
+             // Fix: Type adjustment for LED ID in hardware mapping
+             dynamic cleanLedId = ledId;
+             if (ledId is String && int.tryParse(ledId) != null) {
+               cleanLedId = int.parse(ledId);
+             } else if (ledId is num) {
+               cleanLedId = ledId.toInt();
+             }
+
+             return [{
+                'command': 'SET_LED_COLOR',
+                'params': {'led_id': cleanLedId, 'r': red, 'g': green, 'b': blue}
+             }];
+
+        case 'display_icon':
+             final iconName = (toolCall.arguments['icon_name'] as String?) ?? 'happy';
+             return [{'command': 'DISPLAY_ICON', 'params': {'icon_name': iconName}}];
+
+        case 'set_head_position':
+             final pitch = (toolCall.arguments['pitch'] as num?)?.toInt().clamp(80, 100) ?? 90;
+             final yaw = (toolCall.arguments['yaw'] as num?)?.toInt().clamp(80, 100) ?? 90;
+             return [{'command': 'SET_HEAD_POSITION', 'params': {'pitch': pitch, 'yaw': yaw}}];
+
+        case 'play_sound':
+             final soundId = (toolCall.arguments['sound_id'] as num?)?.toInt().clamp(1, 4) ?? 1;
+             return [{'command': 'PLAY_INTERNAL_SOUND', 'params': {'sound_id': soundId}}];
+
+        default:
+             return null;
+      }
+  }
+
   /// Tool: Get robot connection status and battery level
   Future<String> _getRobotStatus() async {
     return jsonEncode({
@@ -543,12 +714,22 @@ class AgenticAIService {
 
       // Option A: single high-level command -> map to MOVE_TIMED / TURN_TIMED
       final String command = args['command'] as String;
-      final int durationMs = args['duration_ms'] as int? ?? 1000;
-      final int speed = args['speed'] as int? ?? 100;
+      int durationMs = args['duration_ms'] as int? ?? 1000;
+      int speed = args['speed'] as int? ?? 100;
 
-      // Validate speed
-      if (speed < 0 || speed > 255) {
-        return 'ERROR: Speed must be between 0 and 255';
+      // --- GUARDRAIL 2: Speed Clamp ---
+      if (speed > 100) {
+        speed = 100;
+        debugPrint("⚠️ Speed capped at 100");
+      } else if (speed < 0) {
+        speed = 0;
+      }
+
+      // --- GUARDRAIL 3: Duration Limit (Safety) ---
+      const int kMaxDurationMs = 10000; // 10 seconds
+      if (durationMs > kMaxDurationMs) {
+        durationMs = kMaxDurationMs;
+        debugPrint("⚠️ Duration capped at 10s for safety");
       }
 
       // Map to hardware commands
@@ -727,57 +908,7 @@ Focus on practical understanding, not just theory.
     }
   }
 
-  /// Map high-level commands to motor speeds for differential drive
-  Map<String, int> _calculateMotorSpeeds(String command, int baseSpeed) {
-    switch (command.toLowerCase()) {
-      case 'move_forward':
-      case 'forward':
-      case 'maju':
-        // Both motors forward at same speed
-        return {'left': baseSpeed, 'right': baseSpeed};
 
-      case 'move_backward':
-      case 'backward':
-      case 'mundur':
-        // Both motors backward at same speed (negative)
-        return {'left': -baseSpeed, 'right': -baseSpeed};
-
-      case 'turn_left':
-      case 'left':
-      case 'kiri':
-        // Left motor slower/stopped, right motor forward
-        // For sharper turn, left can be negative
-        return {'left': 0, 'right': baseSpeed};
-
-      case 'turn_right':
-      case 'right':
-      case 'kanan':
-        // Right motor slower/stopped, left motor forward
-        return {'left': baseSpeed, 'right': 0};
-
-      case 'spin_left':
-      case 'rotate_left':
-      case 'putar_kiri':
-        // Left motor backward, right motor forward (spin in place)
-        return {'left': -baseSpeed, 'right': baseSpeed};
-
-      case 'spin_right':
-      case 'rotate_right':
-      case 'putar_kanan':
-        // Left motor forward, right motor backward (spin in place)
-        return {'left': baseSpeed, 'right': -baseSpeed};
-
-      case 'stop':
-      case 'berhenti':
-        // Both motors stop
-        return {'left': 0, 'right': 0};
-
-      default:
-        // Default to forward
-        debugPrint('Unknown command: $command, defaulting to forward');
-        return {'left': baseSpeed, 'right': baseSpeed};
-    }
-  }
 
   /// Format robot status into user-friendly message
   String _formatRobotStatus(String jsonStatus) {
