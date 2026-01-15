@@ -20,6 +20,11 @@ class SpeechToTextService {
           debugPrint('STT Error: $error');
           isListening.value = false;
           lastError.value = error.errorMsg;
+          String msg = error.errorMsg;
+          if (msg.isEmpty) {
+            msg = 'Speech recognition error';
+          }
+          lastError.value = msg;
         },
         onStatus: (status) => _onStatusChanged(status),
       );

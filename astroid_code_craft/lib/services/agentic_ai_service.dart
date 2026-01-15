@@ -14,6 +14,11 @@ class AgenticAIService {
   final KolosalApiService _apiService;
   final BluetoothService _bluetoothService;
 
+  // Simple queue for robot command sequences to avoid overlapping runs
+  final List<String> _pendingCommandSequences = [];
+  static const int _maxQueueSize = 10;
+  bool _isProcessingQueue = false;
+
   AgenticAIService({
     required KolosalApiService apiService,
     required BluetoothService bluetoothService,
@@ -241,8 +246,8 @@ class AgenticAIService {
            // This is much faster and cleaner (no individual sleeps in AgenticService)
            final batchToolCall = ToolCall(
              toolName: 'execute_robot_command',
-             toolId: 'batch_${DateTime.now().millisecondsSinceEpoch}',
              arguments: {'commands': hardwareCommandBatch},
+             result: '',
            );
            
            final executedCall = await _executeTool(batchToolCall);

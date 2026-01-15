@@ -304,11 +304,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                     final ctaSpacing = ctaW * 0.08;
                     final ctaRunSpacing = ctaH * (isSmall ? 0.20 : 0.30);
-                    final mascotHeight = math.min(
-                      h * (isSmall ? 0.36 : 0.42),
-                      w * 0.55,
-                    );
-                    final mascotOffset = mascotHeight * (isSmall ? 0.35 : 0.3);
                     final canContinueJourney =
                         !_isLoading && _projects.isNotEmpty;
 
