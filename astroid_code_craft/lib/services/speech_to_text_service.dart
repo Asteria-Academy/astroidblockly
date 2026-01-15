@@ -19,7 +19,7 @@ class SpeechToTextService {
         onError: (error) {
           debugPrint('STT Error: $error');
           isListening.value = false;
-          lastError.value = error.errorMsg ?? 'Speech recognition error';
+          lastError.value = error.errorMsg;
         },
         onStatus: (status) => _onStatusChanged(status),
       );
