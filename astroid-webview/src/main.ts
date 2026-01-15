@@ -900,21 +900,55 @@ async function generateWorkspaceThumbnail(): Promise<string | null> {
 };
 
 (window as any).exportAgenticWorkspace = (): string => {
-  if (!primaryWorkspace) return '{}';
+  // Get the currently opened project from localStorage
+  const data = getProjectsData();
+  if (!data.last_opened_id) {
+    console.warn('No project currently opened');
+    return '{}';
+  }
+  
+  const currentProject = data.projects.find((p: Project) => p.id === data.last_opened_id);
+  if (!currentProject) {
+    console.warn('Current project not found in localStorage');
+    return '{}';
+  }
+  
   try {
-    const workspaceJson = Blockly.serialization.workspaces.save(primaryWorkspace);
-    return JSON.stringify(workspaceJson);
+    return JSON.stringify(currentProject.workspace_json);
   } catch (error) {
-    console.error('Agentic export failed:', error);
+    console.error('Failed to export workspace from localStorage:', error);
     return '{}';
   }
 };
 
 (window as any).applyAgenticWorkspace = (workspaceData: string): boolean => {
   if (!primaryWorkspace || !workspaceData) return false;
+  
+  // Get current project data
+  const data = getProjectsData();
+  if (!data.last_opened_id) {
+    console.warn('No project currently opened');
+    return false;
+  }
+  
+  const projectIndex = data.projects.findIndex((p: Project) => p.id === data.last_opened_id);
+  if (projectIndex === -1) {
+    console.warn('Current project not found in localStorage');
+    return false;
+  }
+  
   try {
     const parsed = JSON.parse(workspaceData);
+    
+    // Update in-memory workspace
     Blockly.serialization.workspaces.load(parsed, primaryWorkspace);
+    
+    // Save to localStorage
+    data.projects[projectIndex].workspace_json = parsed;
+    data.projects[projectIndex].last_modified = Date.now();
+    saveProjectsData(data);
+    
+    console.log('Workspace applied and saved successfully');
     return true;
   } catch (error) {
     console.error('Agentic workspace load failed:', error);
