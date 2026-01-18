@@ -113,7 +113,7 @@ abstract class AppLocalizations {
   /// Code/AI assistant navigation label
   ///
   /// In en, this message translates to:
-  /// **'CODE'**
+  /// **'AI CHAT'**
   String get navCode;
 
   /// Challenges navigation label
@@ -647,7 +647,7 @@ abstract class AppLocalizations {
   /// Code chat screen title
   ///
   /// In en, this message translates to:
-  /// **'Astroid CodeCraft'**
+  /// **'AI Chatbot'**
   String get codeChatTitle;
 
   /// 3D Blocks tab label
@@ -661,12 +661,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chat AI'**
   String get codeChatAI;
-
-  /// Code editor placeholder text
-  ///
-  /// In en, this message translates to:
-  /// **'// Your robot code goes here...'**
-  String get codeChatPlaceholder;
 
   /// Chat input hint text
   ///

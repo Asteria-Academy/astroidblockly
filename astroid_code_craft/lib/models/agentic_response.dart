@@ -14,8 +14,6 @@ class AgenticResponse {
     this.metadata,
   });
 
-  bool get hasToolCalls => toolCalls.isNotEmpty;
-  bool get isSuccess => toolCalls.every((call) => call.success);
 }
 
 /// Represents a single tool call made by the AI
@@ -61,14 +59,6 @@ class ToolCall {
       message: message ?? this.message,
     );
   }
-}
-
-/// Available tool types for the agentic AI
-enum ToolType {
-  getRobotStatus,
-  executeRobotCommand,
-  explainConcept,
-  stopRobot,
 }
 
 /// Tool definition for AI context

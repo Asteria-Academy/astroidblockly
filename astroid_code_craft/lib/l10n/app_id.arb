@@ -11,7 +11,7 @@
     "description": "Label navigasi beranda"
   },
 
-  "navCode": "KODE",
+  "navCode": "CHAT AI",
   "@navCode": {
     "description": "Label navigasi asisten AI/kode"
   },
@@ -486,7 +486,7 @@
     "description": "Tombol batal"
   },
 
-  "codeChatTitle": "Astroid CodeCraft",
+  "codeChatTitle": "Chatbot AI",
   "@codeChatTitle": {
     "description": "Judul layar code chat"
   },
@@ -499,11 +499,6 @@
   "codeChatAI": "Chat AI",
   "@codeChatAI": {
     "description": "Label tab Chat AI"
-  },
-
-  "codeChatPlaceholder": "// Kode robotmu di sini...",
-  "@codeChatPlaceholder": {
-    "description": "Teks placeholder editor kode"
   },
 
   "codeChatInputHint": "Chat dengan AstroidBot...",

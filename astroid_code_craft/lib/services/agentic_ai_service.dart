@@ -19,6 +19,24 @@ class AgenticAIService {
   static const int _maxQueueSize = 10;
   bool _isProcessingQueue = false;
 
+  // Context trimming to avoid oversized prompts
+  static const int _maxContextChars = 8000;
+  static const int _maxHistoryMessages = 8;
+
+  // Motion tuning
+  static const double _turnDurationScale = 0.55;
+  static const double _turnSpeedScale = 0.6;
+  static const double _uTurnDurationScale = 0.7;
+  static const double _uTurnSpeedScale = 0.45;
+  static const int _minTurnDurationMs = 350;
+  static const int _maxTurnDurationMs = 1200;
+  static const int _maxUTurnDurationMs = 1400;
+  static const int _minTurnSpeed = 35;
+  static const int _interCommandGapMs = 500;
+  static const int _minMoveSpeed = 40;
+  static const int _minMoveDurationMs = 400;
+
+
   AgenticAIService({
     required KolosalApiService apiService,
     required BluetoothService bluetoothService,
@@ -47,6 +65,12 @@ class AgenticAIService {
               'turn_right',
               'spin_left',
               'spin_right',
+              'u_turn_left',
+              'u_turn_right',
+              'balik_kiri',
+              'balik_kanan',
+              'putar_balik_kiri',
+              'putar_balik_kanan',
               'stop',
             ],
             'description': 'The command to execute',
@@ -172,14 +196,16 @@ class AgenticAIService {
     List<ChatMessage> conversationHistory,
   ) async {
     try {
-      // Build context with agentic system prompt
-      final List<ChatMessage> contextWithPrompt = [
-        ChatMessage(
-          text: AppPrompts.agenticSystemPrompt,
-          role: ChatRole.system,
-        ),
-        ...conversationHistory,
-      ];
+      // Build context with agentic system prompt (trim history if needed)
+      final contextResult = _buildContextWithPrompt(conversationHistory);
+      if (contextResult.shouldReset) {
+        return AgenticResponse(
+          message:
+              'Chat terlalu panjang untuk diproses. Silakan kembali ke page code atau chat akan direset agar bisa lanjut.',
+          metadata: const {'resetChat': true},
+        );
+      }
+      final List<ChatMessage> contextWithPrompt = contextResult.context;
 
       // Get AI response
       final String aiResponse = await _apiService.getChatCompletion(
@@ -192,8 +218,16 @@ class AgenticAIService {
         );
       }
 
+
       // Try to parse as tool call(s)
-      final List<ToolCall> toolCallResults = _parseToolCalls(aiResponse);
+      List<ToolCall> toolCallResults = _parseToolCalls(aiResponse);
+
+      if (toolCallResults.isEmpty) {
+        final fallbackCalls = _buildFallbackToolCalls(userMessage);
+        if (fallbackCalls.isNotEmpty) {
+          toolCallResults = fallbackCalls;
+        }
+      }
 
       if (toolCallResults.isNotEmpty) {
         // --- GUARDRAIL: Removed Queue Limit ---
@@ -230,10 +264,12 @@ class AgenticAIService {
               originalMessages.add(msg.trim());
             }
           }
+          final List<Map<String, dynamic>> sequencedBatch =
+              _injectInterCommandWait(hardwareCommandBatch, _interCommandGapMs);
 
           final batchToolCall = ToolCall(
             toolName: 'execute_robot_command',
-            arguments: {'commands': hardwareCommandBatch},
+            arguments: {'commands': sequencedBatch},
             result: '',
             message: originalMessages.join('\n'),
           );
@@ -285,10 +321,17 @@ class AgenticAIService {
           message: combinedMessage.isEmpty ? 'Processing...' : combinedMessage,
           toolCalls: executedToolCalls,
           requiresConfirmation: false,
+          metadata: {
+            'messageSegments': responseSegments,
+            'historyTrimmed': contextResult.trimmed,
+          },
         );
       } else {
         // Normal text response
-        return AgenticResponse(message: aiResponse);
+        return AgenticResponse(
+          message: aiResponse,
+          metadata: {'historyTrimmed': contextResult.trimmed},
+        );
       }
     } catch (e) {
       debugPrint('AgenticAIService error: $e');
@@ -296,6 +339,257 @@ class AgenticAIService {
         message: "Sorry, I encountered an error. Please try again.",
       );
     }
+  }
+
+  List<ToolCall> _buildFallbackToolCalls(String userMessage) {
+    final List<ToolCall> calls = [];
+    final segments = _splitCommandSegments(userMessage);
+
+    for (final segment in segments) {
+      calls.addAll(_buildFallbackCallsForSegment(segment));
+    }
+
+    return calls;
+  }
+
+  List<String> _splitCommandSegments(String message) {
+    final normalized = message.toLowerCase();
+    return normalized
+        .split(RegExp(r'\b(lalu|kemudian|terus|dan)\b'))
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+  }
+
+  List<ToolCall> _buildFallbackCallsForSegment(String segment) {
+    final List<ToolCall> calls = [];
+    final int durationMs = _extractDurationMs(segment) ?? 1000;
+    final int speed = _extractSpeed(segment) ?? 80;
+
+    final bool wantsForward = _containsAny(segment, ['maju', 'forward']);
+    final bool wantsBackward = _containsAny(segment, ['mundur', 'backward']);
+    final bool wantsStop = _containsAny(segment, ['stop', 'berhenti']);
+
+    final bool wantsUTurnLeft =
+        _containsAny(segment, ['putar balik kiri', 'balik kiri', 'u-turn left']);
+    final bool wantsUTurnRight =
+        _containsAny(segment, ['putar balik kanan', 'balik kanan', 'u-turn right']);
+    final bool wantsSpinLeft = _containsAny(segment, ['spin kiri', 'spin left', 'putar kiri']);
+    final bool wantsSpinRight = _containsAny(segment, ['spin kanan', 'spin right', 'putar kanan']);
+    final int idxLeft = segment.indexOf('kiri');
+    final int idxRight = segment.indexOf('kanan');
+    final bool mentionsBelok = _containsAny(segment, ['belok', 'turn']);
+
+    if (wantsForward) {
+      calls.add(_buildMoveCall('move_forward', durationMs, speed));
+    }
+    if (wantsBackward) {
+      calls.add(_buildMoveCall('move_backward', durationMs, speed));
+    }
+
+    if (wantsUTurnLeft) {
+      calls.add(_buildMoveCall('u_turn_left', durationMs, speed));
+    } else if (wantsUTurnRight) {
+      calls.add(_buildMoveCall('u_turn_right', durationMs, speed));
+    }
+
+    if (wantsSpinLeft) {
+      calls.add(_buildMoveCall('spin_left', durationMs, speed));
+    }
+    if (wantsSpinRight) {
+      calls.add(_buildMoveCall('spin_right', durationMs, speed));
+    }
+
+    if (!wantsUTurnLeft && !wantsUTurnRight && (idxLeft != -1 || idxRight != -1)) {
+      if (idxLeft != -1 && idxRight != -1) {
+        if (idxLeft < idxRight) {
+          if (mentionsBelok) {
+            calls.add(_buildMoveCall('turn_left', durationMs, speed));
+            calls.add(_buildMoveCall('turn_right', durationMs, speed));
+          }
+        } else {
+          if (mentionsBelok) {
+            calls.add(_buildMoveCall('turn_right', durationMs, speed));
+            calls.add(_buildMoveCall('turn_left', durationMs, speed));
+          }
+        }
+      } else if (idxLeft != -1) {
+        if (mentionsBelok) {
+          calls.add(_buildMoveCall('turn_left', durationMs, speed));
+        }
+      } else if (idxRight != -1) {
+        if (mentionsBelok) {
+          calls.add(_buildMoveCall('turn_right', durationMs, speed));
+        }
+      }
+    }
+
+    if (wantsStop) {
+      calls.add(ToolCall(
+        toolName: 'execute_robot_command',
+        arguments: {'command': 'stop'},
+        result: '',
+      ));
+    }
+
+    if (_containsAny(segment, ['ekspresi', 'expression', 'senyum', 'sedih', 'marah', 'bingung'])) {
+      final icon = _extractIconName(segment);
+      calls.add(ToolCall(
+        toolName: 'display_icon',
+        arguments: {'icon_name': icon},
+        result: '',
+      ));
+    }
+
+    if (_containsAny(segment, ['warna', 'led', 'lampu'])) {
+      final color = _extractLedColor(segment);
+      if (color != null) {
+        calls.add(ToolCall(
+          toolName: 'set_led_color',
+          arguments: {
+            'led_id': 'all',
+            'r': color['r'],
+            'g': color['g'],
+            'b': color['b'],
+          },
+          result: '',
+        ));
+      }
+    }
+
+    return calls;
+  }
+
+  ToolCall _buildMoveCall(String command, int durationMs, int speed) {
+    return ToolCall(
+      toolName: 'execute_robot_command',
+      arguments: {
+        'command': command,
+        'duration_ms': durationMs,
+        'speed': speed,
+      },
+      result: '',
+    );
+  }
+
+  List<Map<String, dynamic>> _injectInterCommandWait(
+    List<Map<String, dynamic>> commands,
+    int gapMs,
+  ) {
+    if (commands.length < 2) return commands;
+
+    final List<Map<String, dynamic>> sequenced = [];
+    for (int i = 0; i < commands.length; i++) {
+      sequenced.add(commands[i]);
+      if (i < commands.length - 1) {
+        sequenced.add({
+          'command': 'WAIT',
+          'params': {'duration_ms': gapMs},
+        });
+      }
+    }
+    return sequenced;
+  }
+
+  bool _containsAny(String text, List<String> needles) {
+    for (final needle in needles) {
+      if (text.contains(needle)) return true;
+    }
+    return false;
+  }
+
+  int? _extractDurationMs(String text) {
+    final secMatch = RegExp(r'(\d+)\s*(detik|second|seconds|s)').firstMatch(text);
+    if (secMatch != null) {
+      final secs = int.tryParse(secMatch.group(1) ?? '');
+      if (secs != null) return secs * 1000;
+    }
+    final msMatch = RegExp(r'(\d+)\s*ms').firstMatch(text);
+    if (msMatch != null) {
+      return int.tryParse(msMatch.group(1) ?? '');
+    }
+    return null;
+  }
+
+  int? _extractSpeed(String text) {
+    if (text.contains('pelan') || text.contains('lambat') || text.contains('slow')) {
+      return 50;
+    }
+    if (text.contains('cepat') || text.contains('fast')) {
+      return 90;
+    }
+    final speedMatch = RegExp(r'(\d+)\s*%').firstMatch(text);
+    if (speedMatch != null) {
+      final val = int.tryParse(speedMatch.group(1) ?? '');
+      if (val != null) return val.clamp(0, 100);
+    }
+    return null;
+  }
+
+  String _extractIconName(String text) {
+    if (text.contains('sedih') || text.contains('sad')) return 'sad';
+    if (text.contains('marah') || text.contains('angry') || text.contains('mad')) {
+      return 'mad';
+    }
+    if (text.contains('bingung') || text.contains('confused')) return 'confused';
+    return 'happy';
+  }
+
+  Map<String, int>? _extractLedColor(String text) {
+    if (text.contains('merah') || text.contains('red')) return {'r': 255, 'g': 0, 'b': 0};
+    if (text.contains('hijau') || text.contains('green')) return {'r': 0, 'g': 255, 'b': 0};
+    if (text.contains('biru') || text.contains('blue')) return {'r': 0, 'g': 128, 'b': 255};
+    if (text.contains('kuning') || text.contains('yellow')) return {'r': 255, 'g': 255, 'b': 0};
+    if (text.contains('ungu') || text.contains('purple')) return {'r': 128, 'g': 0, 'b': 255};
+    return null;
+  }
+
+  _ContextBuildResult _buildContextWithPrompt(
+    List<ChatMessage> conversationHistory,
+  ) {
+    final systemMessage = ChatMessage(
+      text: AppPrompts.agenticSystemPrompt,
+      role: ChatRole.system,
+    );
+
+    final List<ChatMessage> userHistory = conversationHistory
+        .where((msg) => msg.role != ChatRole.system)
+        .toList();
+
+    final int startIndex = userHistory.length > _maxHistoryMessages
+        ? userHistory.length - _maxHistoryMessages
+        : 0;
+    final List<ChatMessage> windowedHistory =
+        userHistory.sublist(startIndex);
+
+    int totalChars = systemMessage.text.length;
+    final List<ChatMessage> trimmedHistory = [];
+    bool trimmed = userHistory.length != windowedHistory.length;
+
+    for (int i = windowedHistory.length - 1; i >= 0; i--) {
+      final msg = windowedHistory[i];
+      final int msgLen = msg.text.length;
+      if (totalChars + msgLen > _maxContextChars) {
+        trimmed = true;
+        continue;
+      }
+      trimmedHistory.add(msg);
+      totalChars += msgLen;
+    }
+
+    if (trimmedHistory.isEmpty && userHistory.isNotEmpty) {
+      return const _ContextBuildResult(
+        context: [],
+        trimmed: true,
+        shouldReset: true,
+      );
+    }
+
+    return _ContextBuildResult(
+      context: [systemMessage, ...trimmedHistory.reversed],
+      trimmed: trimmed,
+      shouldReset: false,
+    );
   }
 
   /// Parse AI response to detect tool calls
@@ -321,11 +615,17 @@ class AgenticAIService {
       debugPrint('Not a single JSON block, trying to split');
     }
 
-    for (final chunk in _splitJsonChunks(cleaned)) {
+    for (final chunk in _extractJsonChunks(cleaned)) {
       try {
         final json = jsonDecode(chunk);
         if (json is Map<String, dynamic> && json.containsKey('tool')) {
           calls.add(ToolCall.fromJson(json));
+        } else if (json is List) {
+          for (final item in json) {
+            if (item is Map<String, dynamic> && item.containsKey('tool')) {
+              calls.add(ToolCall.fromJson(item));
+            }
+          }
         }
       } catch (_) {
         debugPrint('Failed to parse chunk as tool call: $chunk');
@@ -345,9 +645,10 @@ class AgenticAIService {
     return cleaned;
   }
 
-  List<String> _splitJsonChunks(String input) {
+
+  List<String> _extractJsonChunks(String input) {
     final List<String> chunks = [];
-    int braceCount = 0;
+    int depth = 0;
     int startIndex = -1;
     bool inString = false;
     bool isEscaped = false;
@@ -364,18 +665,22 @@ class AgenticAIService {
           }
           isEscaped = false;
         }
-      } else {
-        if (char == '"') {
-          inString = true;
-        } else if (char == '{') {
-          if (braceCount == 0) startIndex = i;
-          braceCount++;
-        } else if (char == '}') {
-          braceCount--;
-          if (braceCount == 0 && startIndex != -1) {
-            chunks.add(input.substring(startIndex, i + 1));
-            startIndex = -1;
-          }
+        continue;
+      }
+
+      if (char == '"') {
+        inString = true;
+        continue;
+      }
+
+      if (char == '{' || char == '[') {
+        if (depth == 0) startIndex = i;
+        depth++;
+      } else if (char == '}' || char == ']') {
+        depth = depth > 0 ? depth - 1 : 0;
+        if (depth == 0 && startIndex != -1) {
+          chunks.add(input.substring(startIndex, i + 1));
+          startIndex = -1;
         }
       }
     }
@@ -663,17 +968,19 @@ class AgenticAIService {
         if (durationMs > 10000) durationMs = 10000;
 
         Map<String, dynamic>? singleCmd;
+        List<Map<String, dynamic>>? commandList;
 
         switch (command.toLowerCase()) {
           case 'move_forward':
           case 'forward':
           case 'maju':
+            final normalizedForward = _normalizeMoveParams(speed, durationMs);
             singleCmd = {
               'command': 'MOVE_TIMED',
               'params': {
                 'direction': 'forward',
-                'speed': speed,
-                'duration_ms': durationMs,
+                'speed': normalizedForward.speed,
+                'duration_ms': normalizedForward.durationMs,
               },
             };
             break;
@@ -681,12 +988,13 @@ class AgenticAIService {
           case 'move_backward':
           case 'backward':
           case 'mundur':
+            final normalizedBackward = _normalizeMoveParams(speed, durationMs);
             singleCmd = {
               'command': 'MOVE_TIMED',
               'params': {
                 'direction': 'backward',
-                'speed': speed,
-                'duration_ms': durationMs,
+                'speed': normalizedBackward.speed,
+                'duration_ms': normalizedBackward.durationMs,
               },
             };
             break;
@@ -695,59 +1003,65 @@ class AgenticAIService {
           case 'left':
           case 'belok_kiri':
           case 'kiri':
-            singleCmd = {
-              'command': 'TURN_TIMED',
-              'params': {
-                'direction': 'left',
-                'speed': speed,
-                'duration_ms': durationMs,
-              },
-            };
+            singleCmd = _buildTurnDirectCommand(
+              direction: 'left',
+              speed: speed,
+              durationMs: durationMs,
+            );
             break;
 
           case 'turn_right':
           case 'right':
           case 'belok_kanan':
           case 'kanan':
-            singleCmd = {
-              'command': 'TURN_TIMED',
-              'params': {
-                'direction': 'right',
-                'speed': speed,
-                'duration_ms': durationMs,
-              },
-            };
+            singleCmd = _buildTurnDirectCommand(
+              direction: 'right',
+              speed: speed,
+              durationMs: durationMs,
+            );
             break;
 
           case 'spin_left':
-            singleCmd = {
-              'command': 'TURN_TIMED',
-              'params': {
-                'direction': 'left',
-                'speed': speed,
-                'duration_ms': durationMs,
-              },
-            };
+            singleCmd = _buildTurnDirectCommand(
+              direction: 'left',
+              speed: speed,
+              durationMs: durationMs,
+            );
             break;
           case 'spin_right':
-            singleCmd = {
-              'command': 'TURN_TIMED',
-              'params': {
-                'direction': 'right',
-                'speed': speed,
-                'duration_ms': durationMs,
-              },
-            };
+            singleCmd = _buildTurnDirectCommand(
+              direction: 'right',
+              speed: speed,
+              durationMs: durationMs,
+            );
+            break;
+
+          case 'u_turn_left':
+          case 'balik_kiri':
+          case 'putar_balik_kiri':
+            commandList = _buildUTurnDirectCommands(
+              direction: 'left',
+              speed: speed,
+              durationMs: durationMs,
+            );
+            break;
+
+          case 'u_turn_right':
+          case 'balik_kanan':
+          case 'putar_balik_kanan':
+            commandList = _buildUTurnDirectCommands(
+              direction: 'right',
+              speed: speed,
+              durationMs: durationMs,
+            );
             break;
 
           case 'stop':
-            singleCmd = {
-              'command': 'DRIVE_DIRECT',
-              'params': {'left_speed': 0, 'right_speed': 0},
-            };
+            singleCmd = _buildStopCommand();
             break;
         }
 
+        if (commandList != null) return commandList;
         return singleCmd != null ? [singleCmd] : null;
 
       case 'set_led_color':
@@ -851,9 +1165,14 @@ class AgenticAIService {
           if (!item.containsKey('command')) {
             return 'ERROR: Command object missing "command" field.';
           }
-          final commandName = (item['command'] as String).toUpperCase();
+          String commandName = (item['command'] as String).toUpperCase();
           if (commandName == 'META_START_INFINITE_LOOP') {
             hasInfiniteLoop = true;
+          }
+
+          final validationError = _validateSequencerCommand(item);
+          if (validationError != null) {
+            return validationError;
           }
           // Optional safety: clamp speeds if present
           final params = item['params'];
@@ -867,8 +1186,50 @@ class AgenticAIService {
           } else {
             safeParams = {};
           }
+
+          if (commandName == 'DISPLAY_ICON') {
+            final iconName =
+                (safeParams['icon_name'] as String?) ?? 'happy';
+            safeParams['icon_name'] = iconName;
+            item['params'] = safeParams;
+            sequencerCommands.add(item);
+            continue;
+          }
+
+          if (commandName == 'MOVE_TIMED') {
+            final int rawSpeed =
+                (safeParams['speed'] as num?)?.toInt() ?? 0;
+            final int rawDuration =
+                (safeParams['duration_ms'] as num?)?.toInt() ?? 1000;
+            final normalized = _normalizeMoveParams(rawSpeed, rawDuration);
+            safeParams['speed'] = normalized.speed;
+            safeParams['duration_ms'] = normalized.durationMs;
+          }
+
+          // Reduce excessive turning
+          if (commandName == 'TURN_TIMED') {
+            final int rawDuration =
+                (safeParams['duration_ms'] as num?)?.toInt() ?? 1000;
+            final int rawSpeed =
+                (safeParams['speed'] as num?)?.toInt() ?? 80;
+            final bool isUTurn = safeParams['turn_type'] == 'uturn';
+            safeParams['duration_ms'] = _scaleDuration(
+              rawDuration,
+              isUTurn ? _uTurnDurationScale : _turnDurationScale,
+              min: _minTurnDurationMs,
+              max: isUTurn ? _maxUTurnDurationMs : _maxTurnDurationMs,
+            );
+            safeParams['speed'] = _scaleSpeed(
+              rawSpeed,
+              isUTurn ? _uTurnSpeedScale : _turnSpeedScale,
+              min: _minTurnSpeed,
+              max: 100,
+            );
+          }
           // Provide default duration for motion commands if missing
-          if (item['command'] == 'DRIVE_DIRECT' &&
+          if ((item['command'] == 'MOVE_TIMED' ||
+                  item['command'] == 'TURN_TIMED' ||
+                  item['command'] == 'WAIT') &&
               !safeParams.containsKey('duration_ms')) {
             safeParams['duration_ms'] = 1000;
           }
@@ -876,7 +1237,9 @@ class AgenticAIService {
           sequencerCommands.add(item);
         }
 
-        final sequenceJson = jsonEncode(sequencerCommands);
+        final sequencedWithGap =
+          _injectInterCommandWait(sequencerCommands, _interCommandGapMs);
+        final sequenceJson = jsonEncode(sequencedWithGap);
         final executionResult = await _runOrQueueSequence(sequenceJson);
         if (hasInfiniteLoop) {
           return '$executionResult\n\nNOTE: This sequence contains an infinite loop. Use the stop button or the "stop_robot" tool to cancel it when needed.';
@@ -885,7 +1248,7 @@ class AgenticAIService {
       }
 
       // Option A: single high-level command -> map to MOVE_TIMED / TURN_TIMED
-      final String command = args['command'] as String;
+        final String command = args['command'] as String;
       int durationMs = args['duration_ms'] as int? ?? 1000;
       int speed = args['speed'] as int? ?? 100;
 
@@ -911,12 +1274,13 @@ class AgenticAIService {
         case 'move_forward':
         case 'forward':
         case 'maju':
+          final normalizedForward = _normalizeMoveParams(speed, durationMs);
           hardwareCommand = {
             'command': 'MOVE_TIMED',
             'params': {
               'direction': 'forward',
-              'speed': speed,
-              'duration_ms': durationMs,
+              'speed': normalizedForward.speed,
+              'duration_ms': normalizedForward.durationMs,
             },
           };
           break;
@@ -924,12 +1288,13 @@ class AgenticAIService {
         case 'move_backward':
         case 'backward':
         case 'mundur':
+          final normalizedBackward = _normalizeMoveParams(speed, durationMs);
           hardwareCommand = {
             'command': 'MOVE_TIMED',
             'params': {
               'direction': 'backward',
-              'speed': speed,
-              'duration_ms': durationMs,
+              'speed': normalizedBackward.speed,
+              'duration_ms': normalizedBackward.durationMs,
             },
           };
           break;
@@ -937,61 +1302,72 @@ class AgenticAIService {
         case 'turn_left':
         case 'left':
         case 'kiri':
-          hardwareCommand = {
-            'command': 'TURN_TIMED',
-            'params': {
-              'direction': 'left',
-              'speed': speed,
-              'duration_ms': durationMs,
-            },
-          };
+          hardwareCommand = _buildTurnDirectCommand(
+            direction: 'left',
+            speed: speed,
+            durationMs: durationMs,
+          );
           break;
 
         case 'turn_right':
         case 'right':
         case 'kanan':
-          hardwareCommand = {
-            'command': 'TURN_TIMED',
-            'params': {
-              'direction': 'right',
-              'speed': speed,
-              'duration_ms': durationMs,
-            },
-          };
+          hardwareCommand = _buildTurnDirectCommand(
+            direction: 'right',
+            speed: speed,
+            durationMs: durationMs,
+          );
           break;
 
         case 'spin_left':
         case 'rotate_left':
         case 'putar_kiri':
-          hardwareCommand = {
-            'command': 'TURN_TIMED',
-            'params': {
-              'direction': 'left',
-              'speed': speed,
-              'duration_ms': durationMs,
-            },
-          };
+          hardwareCommand = _buildTurnDirectCommand(
+            direction: 'left',
+            speed: speed,
+            durationMs: durationMs,
+          );
           break;
 
         case 'spin_right':
         case 'rotate_right':
         case 'putar_kanan':
-          hardwareCommand = {
-            'command': 'TURN_TIMED',
-            'params': {
-              'direction': 'right',
-              'speed': speed,
-              'duration_ms': durationMs,
-            },
-          };
+          hardwareCommand = _buildTurnDirectCommand(
+            direction: 'right',
+            speed: speed,
+            durationMs: durationMs,
+          );
           break;
+
+        case 'u_turn_left':
+        case 'balik_kiri':
+        case 'putar_balik_kiri':
+          return await _runOrQueueSequence(
+            jsonEncode(
+              _buildUTurnDirectCommands(
+                direction: 'left',
+                speed: speed,
+                durationMs: durationMs,
+              ),
+            ),
+          );
+
+        case 'u_turn_right':
+        case 'balik_kanan':
+        case 'putar_balik_kanan':
+          return await _runOrQueueSequence(
+            jsonEncode(
+              _buildUTurnDirectCommands(
+                direction: 'right',
+                speed: speed,
+                durationMs: durationMs,
+              ),
+            ),
+          );
 
         case 'stop':
         case 'berhenti':
-          hardwareCommand = {
-            'command': 'DRIVE_DIRECT',
-            'params': {'left_speed': 0, 'right_speed': 0},
-          };
+          hardwareCommand = _buildStopCommand();
           break;
 
         default:
@@ -1003,6 +1379,183 @@ class AgenticAIService {
     } catch (e) {
       return 'ERROR: Failed to execute command - $e';
     }
+  }
+
+  int _scaleDuration(
+    int durationMs,
+    double factor, {
+    required int min,
+    required int max,
+  }) {
+    final int scaled = (durationMs * factor).round();
+    return scaled.clamp(min, max);
+  }
+
+  int _scaleSpeed(
+    int speed,
+    double factor, {
+    required int min,
+    required int max,
+  }) {
+    final int scaled = (speed * factor).round();
+    return scaled.clamp(min, max);
+  }
+
+  _NormalizedMove _normalizeMoveParams(int speed, int durationMs) {
+    if (speed <= 0) {
+      return const _NormalizedMove(speed: 0, durationMs: _minMoveDurationMs);
+    }
+    final int normalizedSpeed = speed.clamp(_minMoveSpeed, 100);
+    final int normalizedDuration = durationMs.clamp(_minMoveDurationMs, 10000);
+    return _NormalizedMove(
+      speed: normalizedSpeed,
+      durationMs: normalizedDuration,
+    );
+  }
+
+  Map<String, dynamic> _buildTurnDirectCommand({
+    required String direction,
+    required int speed,
+    required int durationMs,
+  }) {
+    final int scaledSpeed = _scaleSpeed(
+      speed,
+      _turnSpeedScale,
+      min: _minTurnSpeed,
+      max: 100,
+    );
+    final int scaledDuration = _scaleDuration(
+      durationMs,
+      _turnDurationScale,
+      min: _minTurnDurationMs,
+      max: _maxTurnDurationMs,
+    );
+
+    // NOTE: Direction corrected (left/right were inverted on hardware).
+    final int leftSpeed = direction == 'left' ? scaledSpeed : -scaledSpeed;
+    final int rightSpeed = direction == 'left' ? -scaledSpeed : scaledSpeed;
+
+    return {
+      'command': 'DRIVE_DIRECT',
+      'params': {
+        'left_speed': leftSpeed,
+        'right_speed': rightSpeed,
+        'duration_ms': scaledDuration,
+      },
+    };
+  }
+
+  List<Map<String, dynamic>> _buildUTurnDirectCommands({
+    required String direction,
+    required int speed,
+    required int durationMs,
+  }) {
+    final int scaledSpeed = _scaleSpeed(
+      speed,
+      _uTurnSpeedScale,
+      min: _minTurnSpeed,
+      max: 100,
+    );
+    final int scaledDuration = _scaleDuration(
+      durationMs,
+      _uTurnDurationScale,
+      min: _minTurnDurationMs,
+      max: _maxUTurnDurationMs,
+    );
+
+    // NOTE: Direction corrected (left/right were inverted on hardware).
+    final int leftSpeed = direction == 'left' ? scaledSpeed : -scaledSpeed;
+    final int rightSpeed = direction == 'left' ? -scaledSpeed : scaledSpeed;
+
+    return [
+      {
+        'command': 'DRIVE_DIRECT',
+        'params': {
+          'left_speed': leftSpeed,
+          'right_speed': rightSpeed,
+          'duration_ms': scaledDuration,
+        },
+      },
+    ];
+  }
+
+  Map<String, dynamic> _buildStopCommand() {
+    return {
+      'command': 'MOVE_TIMED',
+      'params': {
+        'direction': 'forward',
+        'speed': 0,
+        'duration_ms': 200,
+      },
+    };
+  }
+
+
+  String? _validateSequencerCommand(Map<String, dynamic> item) {
+    final commandName = (item['command'] as String).toUpperCase();
+    const allowedCommands = {
+      'DRIVE_DIRECT',
+      'MOVE_TIMED',
+      'TURN_TIMED',
+      'WAIT',
+      'SET_HEAD_POSITION',
+      'SET_LED_COLOR',
+      'DISPLAY_ICON',
+      'PLAY_INTERNAL_SOUND',
+      'SET_GRIPPER',
+      'META_START_LOOP',
+      'META_START_INFINITE_LOOP',
+      'META_END_LOOP',
+      'META_BREAK_LOOP',
+      'META_IF',
+      'META_ELSE_IF',
+      'META_ELSE',
+      'META_END_IF',
+    };
+
+    if (!allowedCommands.contains(commandName)) {
+      return 'ERROR: Unsupported command "$commandName".';
+    }
+
+    if (commandName.startsWith('META_')) {
+      return null;
+    }
+
+    final params = item['params'];
+    if (params is! Map<String, dynamic>) {
+      return 'ERROR: "$commandName" requires a params object.';
+    }
+
+    switch (commandName) {
+      case 'DRIVE_DIRECT':
+        if (!params.containsKey('left_speed') ||
+            !params.containsKey('right_speed') ||
+            !params.containsKey('duration_ms')) {
+          return 'ERROR: DRIVE_DIRECT requires left_speed, right_speed, and duration_ms.';
+        }
+        break;
+      case 'MOVE_TIMED':
+        if (!params.containsKey('direction') ||
+            !params.containsKey('duration_ms')) {
+          return 'ERROR: MOVE_TIMED requires direction and duration_ms.';
+        }
+        break;
+      case 'TURN_TIMED':
+        if (!params.containsKey('direction') ||
+            !params.containsKey('duration_ms')) {
+          return 'ERROR: TURN_TIMED requires direction and duration_ms.';
+        }
+        break;
+      case 'WAIT':
+        if (!params.containsKey('duration_ms')) {
+          return 'ERROR: WAIT requires duration_ms.';
+        }
+        break;
+      default:
+        break;
+    }
+
+    return null;
   }
 
   /// Runs a command sequence immediately if idle, otherwise enqueues it.
@@ -1025,7 +1578,7 @@ class AgenticAIService {
 
     // Kick off any pending items after this one finishes
     _processCommandQueue();
-    return 'SUCCESS: Command executed';
+    return '';
   }
 
   /// Simple FIFO queue processor that waits for the sequencer to be idle before dispatching.
@@ -1099,7 +1652,7 @@ Focus on practical understanding, not just theory.
       // Clear any queued commands and stop current sequence
       _pendingCommandSequences.clear();
       _bluetoothService.stopSequence();
-      return 'SUCCESS: Robot stopped and queue cleared';
+      return '';
     } catch (e) {
       return 'ERROR: Failed to stop robot - $e';
     }
@@ -1136,4 +1689,23 @@ Focus on practical understanding, not just theory.
       return "Could not parse robot status.";
     }
   }
+}
+
+class _ContextBuildResult {
+  final List<ChatMessage> context;
+  final bool trimmed;
+  final bool shouldReset;
+
+  const _ContextBuildResult({
+    required this.context,
+    required this.trimmed,
+    required this.shouldReset,
+  });
+}
+
+class _NormalizedMove {
+  final int speed;
+  final int durationMs;
+
+  const _NormalizedMove({required this.speed, required this.durationMs});
 }

@@ -11,7 +11,7 @@
     "description": "Home navigation label"
   },
 
-  "navCode": "CODE",
+  "navCode": "AI CHAT",
   "@navCode": {
     "description": "Code/AI assistant navigation label"
   },
@@ -486,7 +486,7 @@
     "description": "Cancel button"
   },
 
-  "codeChatTitle": "Astroid CodeCraft",
+  "codeChatTitle": "AI Chatbot",
   "@codeChatTitle": {
     "description": "Code chat screen title"
   },
@@ -499,11 +499,6 @@
   "codeChatAI": "Chat AI",
   "@codeChatAI": {
     "description": "Chat AI tab label"
-  },
-
-  "codeChatPlaceholder": "// Your robot code goes here...",
-  "@codeChatPlaceholder": {
-    "description": "Code editor placeholder text"
   },
 
   "codeChatInputHint": "Chat with AstroidBot...",

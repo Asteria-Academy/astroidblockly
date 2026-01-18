@@ -298,20 +298,23 @@ class BluetoothService with ChangeNotifier {
 
       while (pc < commands.length && !_stopRequested) {
         final command = commands[pc] as Map<String, dynamic>;
-        final String commandName = command['command'];
+        String commandName = command['command'];
         int pcIncrement = 1;
+
+        bool executedAction = false;
 
         switch (commandName) {
           case 'MOVE_TIMED':
           case 'TURN_TIMED':
+          case 'DRIVE_DIRECT':
           case 'WAIT':
           case 'SET_HEAD_POSITION':
           case 'SET_LED_COLOR':
           case 'DISPLAY_ICON':
           case 'PLAY_INTERNAL_SOUND':
-          case 'DRIVE_DIRECT':
           case 'SET_GRIPPER':
             await _executeActionCommand(command);
+            executedAction = true;
             break;
 
           // Finite loop start
@@ -380,6 +383,10 @@ class BluetoothService with ChangeNotifier {
         }
 
         pc += pcIncrement;
+
+        if (executedAction) {
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
       }
     } catch (e) {
       debugPrint("Error processing command sequence: $e");
@@ -387,9 +394,7 @@ class BluetoothService with ChangeNotifier {
 
     debugPrint("--- Sequence Finished ---");
     if (!_stopRequested) {
-      await sendCommand(
-        '{"command":"DRIVE_DIRECT","params":{"left_speed":0,"right_speed":0}}',
-      );
+      await _sendStopMotion();
     }
 
     _updateSequencerState(SequencerState.idle);
@@ -748,12 +753,17 @@ class BluetoothService with ChangeNotifier {
   void stopSequence() {
     if (_sequencerState == SequencerState.running) {
       _stopRequested = true;
-      sendCommand(
-        '{"command":"DRIVE_DIRECT","params":{"left_speed":0,"right_speed":0}}',
-      );
+      _sendStopMotion();
       _updateSequencerState(SequencerState.idle);
     }
   }
+
+  Future<void> _sendStopMotion() async {
+    await sendCommand(
+      '{"command":"MOVE_TIMED","params":{"direction":"forward","speed":0,"duration_ms":200}}',
+    );
+  }
+
 
   Future<void> sendCommand(String jsonCommand) async {
     if (_rxCharacteristic == null) {

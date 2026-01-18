@@ -10,7 +10,6 @@ import '../services/bluetooth_service.dart';
 import '../services/agentic_ai_service.dart';
 import '../models/chat_message.dart';
 import '../models/agentic_response.dart';
-import '../config/app_prompts.dart';
 import '../router/app_router.dart';
 import '../l10n/generated/app_localizations.dart';
 
@@ -48,31 +47,16 @@ class CodeChatScreen extends StatelessWidget {
           ),
         ],
       ),
-      // Since landscape is enforced, we use a Row
-      body: Row(
-        children: [
-          // --- Left Panel: Code Editor ---
-          Expanded(
-            flex: 6, // 60% of the screen
-            child: _CodeEditorPlaceholder(),
+      body: Container(
+        decoration: BoxDecoration(
+          // Theme: Panel BG
+          color: const Color(0xFF1A244A),
+          border: Border(
+            // Theme: Subtle border
+            left: BorderSide(color: Colors.blueGrey[700]!, width: 1),
           ),
-
-          // --- Right Panel: Chatbot ---
-          Expanded(
-            flex: 4, // 40% of the screen
-            child: Container(
-              decoration: BoxDecoration(
-                // Theme: Panel BG
-                color: const Color(0xFF1A244A),
-                border: Border(
-                  // Theme: Subtle border
-                  left: BorderSide(color: Colors.blueGrey[700]!, width: 1),
-                ),
-              ),
-              child: _ChatBotPanel(), // The chat logic is inside here
-            ),
-          ),
-        ],
+        ),
+        child: _ChatBotPanel(),
       ),
     );
   }
@@ -181,30 +165,6 @@ class _EditorToggleChip extends StatelessWidget {
 
 // --- Placeholder for the Code Editor ---
 
-class _CodeEditorPlaceholder extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      color: const Color(0xFF0a122e), // Darker editor bg
-      child: TextField(
-        expands: true,
-        maxLines: null,
-        minLines: null,
-        style: GoogleFonts.firaCode(fontSize: 14, color: Colors.white),
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          hintText: AppLocalizations.of(context)!.codeChatPlaceholder,
-          hintStyle: GoogleFonts.firaCode(
-            fontSize: 14,
-            color: Colors.white70, // Theme: Subtitle/Hint text
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // --- Chatbot Panel Widget (Contains all our chat logic) ---
 
 class _ChatBotPanel extends StatefulWidget {
@@ -228,12 +188,7 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
   bool _sttInitialized = false;
 
   // Local Context
-  final List<ChatMessage> _chatHistory = [
-    ChatMessage(
-      text: AppPrompts.systemPrompt, // From our config file
-      role: ChatRole.system,
-    )
-  ];
+  final List<ChatMessage> _chatHistory = [];
 
   @override
   void initState() {
@@ -322,11 +277,33 @@ class _ChatBotPanelState extends State<_ChatBotPanel> {
 
     if (!mounted) return;
     setState(() {
-      // Add the AI response to chat history
-      _chatHistory.add(ChatMessage(
-        text: agenticResponse.message,
-        role: ChatRole.ai,
-      ));
+      final metadata = agenticResponse.metadata ?? {};
+      final bool shouldReset = metadata['resetChat'] == true;
+      if (shouldReset) {
+        _chatHistory.clear();
+        _chatHistory.add(ChatMessage(
+          text: agenticResponse.message,
+          role: ChatRole.ai,
+        ));
+      } else {
+        final segments = metadata['messageSegments'];
+        if (segments is List && segments.isNotEmpty) {
+          for (final segment in segments) {
+            final text = segment.toString().trim();
+            if (text.isNotEmpty) {
+              _chatHistory.add(ChatMessage(
+                text: text,
+                role: ChatRole.ai,
+              ));
+            }
+          }
+        } else {
+          _chatHistory.add(ChatMessage(
+            text: agenticResponse.message,
+            role: ChatRole.ai,
+          ));
+        }
+      }
       _isProcessing = false;
     });
     _scrollToBottom();

@@ -15,7 +15,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navHome => 'HOME';
 
   @override
-  String get navCode => 'CODE';
+  String get navCode => 'AI CHAT';
 
   @override
   String get navChallenges => 'CHALLENGES';
@@ -304,16 +304,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connectingCancel => 'Cancel';
 
   @override
-  String get codeChatTitle => 'Astroid CodeCraft';
+  String get codeChatTitle => 'AI Chatbot';
 
   @override
   String get codeChatBlocks => '3D Blocks';
 
   @override
   String get codeChatAI => 'Chat AI';
-
-  @override
-  String get codeChatPlaceholder => '// Your robot code goes here...';
 
   @override
   String get codeChatInputHint => 'Chat with AstroidBot...';

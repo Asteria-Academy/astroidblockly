@@ -15,7 +15,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get navHome => 'BERANDA';
 
   @override
-  String get navCode => 'KODE';
+  String get navCode => 'CHAT AI';
 
   @override
   String get navChallenges => 'TANTANGAN';
@@ -304,16 +304,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get connectingCancel => 'Batal';
 
   @override
-  String get codeChatTitle => 'Astroid CodeCraft';
+  String get codeChatTitle => 'Chatbot AI';
 
   @override
   String get codeChatBlocks => 'Blok 3D';
 
   @override
   String get codeChatAI => 'Chat AI';
-
-  @override
-  String get codeChatPlaceholder => '// Kode robotmu di sini...';
 
   @override
   String get codeChatInputHint => 'Chat dengan AstroidBot...';

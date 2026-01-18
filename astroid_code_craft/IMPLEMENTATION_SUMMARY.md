@@ -159,11 +159,13 @@ AppPrompts.agenticSystemPrompt
 
 ### **Supported Robot Commands:**
 ```dart
-'move_forward'   → DRIVE_DIRECT (forward)
-'move_backward'  → DRIVE_DIRECT (backward)
-'turn_left'      → DRIVE_DIRECT (differential)
-'turn_right'     → DRIVE_DIRECT (differential)
-'stop'           → DRIVE_DIRECT (speed 0)
+'move_forward'   → MOVE_TIMED (forward)
+'move_backward'  → MOVE_TIMED (backward)
+'turn_left'      → TURN_TIMED
+'turn_right'     → TURN_TIMED
+'u_turn_left'    → TURN_TIMED (180°)
+'u_turn_right'   → TURN_TIMED (180°)
+'stop'           → MOVE_TIMED (speed 0)
 ```
 
 ---
